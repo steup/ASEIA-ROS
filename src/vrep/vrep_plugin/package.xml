@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package>
+  <name>vrep_plugin</name>
+  <version>0.0.0</version>
+  <description>The VREP ROS plugin library</description>
+  <maintainer email="steup@ivs.cs.ovgu.de">Christoph Steup</maintainer>
+  <license>BSD</license>
+  <url type="website">http://www.coppeliarobotics.com</url>
+  <author email="marc@coppeliarobotics.com">Dr. Marc Andreas Freese</author>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>vrep_common</build_depend>
+</package>
