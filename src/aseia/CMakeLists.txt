@@ -2,11 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(aseia)
 
 set(CMAKE_CXX_FLAGS "-std=c++11")
+set(ASEIA /home/ssj5kc/eos/research/ASEIA)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp)
+find_package(catkin REQUIRED roscpp genmsg)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -42,11 +43,11 @@ find_package(catkin REQUIRED roscpp)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   EventType.msg
+   SensorEvent.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -63,10 +64,10 @@ find_package(catkin REQUIRED roscpp)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+  generate_messages(
+   DEPENDENCIES
+   std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -78,9 +79,9 @@ find_package(catkin REQUIRED roscpp)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES aseia
-#   CATKIN_DEPENDS p
+   CATKIN_DEPENDS genmsg
 #  DEPENDS system_lib
 )
 
@@ -90,7 +91,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+include_directories(include ${ASEIA}/include)
 
 ## Declare a cpp library
 # add_library(aseia
@@ -99,13 +100,18 @@ catkin_package(
 
 ## Declare a cpp executable
 add_executable(examplePub src/examplePub.cpp)
+add_executable(exampleSub src/exampleSub.cpp)
+add_executable(coupler    src/coupler.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 #add_dependencies(test)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(examplePub ${catkin_LIBRARIES})
+target_link_libraries(examplePub ${catkin_LIBRARIES} -L${ASEIA}/lib -lASEIA)
+target_link_libraries(exampleSub ${catkin_LIBRARIES} -L${ASEIA}/lib -lASEIA)
+target_link_libraries(coupler    ${catkin_LIBRARIES} -L${ASEIA}/lib -lASEIA)
+
 
 #############
 ## Install ##

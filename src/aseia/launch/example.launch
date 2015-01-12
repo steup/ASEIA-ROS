@@ -1,0 +1,6 @@
+<launch>
+  <node name="AseiaExamplePub"  pkg="aseia"   type="examplePub" />
+  <node name="AseiaExampleSub"  pkg="aseia"   type="exampleSub" />
+  <node name="AseiaTypeCoupler" pkg="aseia"   type="coupler"    />
+  <node name="Introspection"    pkg="rqt_gui" type="rqt_gui"    />
+</launch>
