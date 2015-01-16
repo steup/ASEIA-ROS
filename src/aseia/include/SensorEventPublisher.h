@@ -24,9 +24,9 @@ class SensorEventPublisher {
     std::string        mTopic;
     FormatID           mFormat;
     aseia::EventType   mType;
-    ros::Publisher     mPub;
-    std::thread        mTypeThread;
+    ros::Publisher     mPub; 
     std::atomic<bool>  mRunning;
+    std::thread        mTypeThread;
     const unsigned int mTypePeriod;
     
     
@@ -35,7 +35,7 @@ class SensorEventPublisher {
     void typeThreadFunc(){
       ros::NodeHandle n;
       ros::Publisher typePub = n.advertise<aseia::EventType>(managementTopic(), 10);
-      while(ros::ok() && mRunning.load()) {
+      while(ros::ok() && mRunning) {
         ROS_INFO_STREAM("publish: " << mType);
         typePub.publish(mType);
         std::this_thread::sleep_for(std::chrono::milliseconds(mTypePeriod));
@@ -46,6 +46,7 @@ public:
   SensorEventPublisher(const std::string& topic, uint16_t nodeID, unsigned int typePeriod = 1000)
     : mTopic(prefix() + "/" + topic),
       mFormat(nodeID, FormatID::Direction::publisher),
+      mRunning(true),
       mTypeThread([this](){typeThreadFunc();}),
       mTypePeriod(typePeriod)
     {

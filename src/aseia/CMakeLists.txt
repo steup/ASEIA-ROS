@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(aseia)
 
 set(CMAKE_CXX_FLAGS "-std=c++11")
-set(ASEIA /home/ssj5kc/eos/research/ASEIA)
+set(ASEIA /home/steup/eos/research/vrep/aseia)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
