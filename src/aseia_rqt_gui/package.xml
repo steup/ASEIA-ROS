@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>aseia</name>
+  <name>aseia_rqt_gui</name>
   <version>0.0.0</version>
-  <description>The aseia package</description>
+  <description>An rqt based visualization of aseia channels</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/aseia</url> -->
+  <!-- <url type="website">http://wiki.ros.org/rqt_aseia</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -40,15 +40,14 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-
-  <build_depend>roscpp</build_depend>
-  <build_depend>genmsg</build_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>genmsg</run_depend>
+  <build_depend>rqt_gui</build_depend>
+  <build_depend>aseia_wrapper</build_depend>
+  <build_depend>aseia_msgs</build_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
     <!-- You can specify that this package is a metapackage here: -->
     <!-- <metapackage/> -->
 

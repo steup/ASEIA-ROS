@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="AseiaGUI" type="rqt_aseia.gui" base_class_type="rqt_gui::Plugin">
+    <description>
+      An GUI to display current communication channels of ASEIA
+    </description>
+    <qtgui>
+      <label>ASEIA GUI</label>
+      <icon type="theme">system-help</icon>
+      <statustip>GUI to display ASEIA channels</statustip>
+    </qtgui>
+  </class>
+</library>

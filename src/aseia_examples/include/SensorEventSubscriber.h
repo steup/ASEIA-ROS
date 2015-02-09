@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ros/publisher.h>
+#include <ros/subscriber.h>
 #include <ros/node_handle.h>
 #include <ros/console.h>
 
@@ -15,40 +15,49 @@
 #include <atomic>
 #include <chrono>
 
-#include <aseia/SensorEvent.h>
-#include <aseia/EventType.h>
+#include <aseia_msgs//SensorEvent.h>
+#include <aseia_msgs/EventType.h>
 
 template<typename SensorEvent>
-class SensorEventPublisher {
-  private: 
-    std::string        mTopic;
-    FormatID           mFormat;
-    aseia::EventType   mType;
-    ros::Publisher     mPub; 
-    std::atomic<bool>  mRunning;
-    std::thread        mTypeThread;
+class SensorEventSubscriber {
+ private: 
+    std::string           mTopic;
+    FormatID              mFormat;
+    aseia_msgs::EventType mType;
+    ros::Subscriber       mSub;
+    std::thread           mTypeThread;
+    std::atomic<bool>     mRunning;
     const unsigned int mTypePeriod;
+    void (*mCallback)(const SensorEvent&);
     
     
     constexpr std::string prefix() { return "/sensors"; }
     constexpr std::string managementTopic() { return prefix()+"/management"; }
+
     void typeThreadFunc(){
       ros::NodeHandle n;
-      ros::Publisher typePub = n.advertise<aseia::EventType>(managementTopic(), 10);
-      while(ros::ok() && mRunning) {
+      ros::Publisher typePub = n.advertise<aseia_msgs::EventType>(managementTopic(), 10);
+      while(ros::ok() && mRunning.load()) {
         ROS_INFO_STREAM("publish: " << mType);
         typePub.publish(mType);
         std::this_thread::sleep_for(std::chrono::milliseconds(mTypePeriod));
       }
     }
 
+    void unpack(const aseia_msgs::SensorEvent::ConstPtr& msg) {
+      SensorEvent e;
+      DeSerializer<decltype(msg->event.begin())> d(msg->event.begin(), msg->event.end());
+      d >> e;
+      mCallback(e);
+    }
+
 public:
-  SensorEventPublisher(const std::string& topic, uint16_t nodeID, unsigned int typePeriod = 1000)
+  SensorEventSubscriber(const std::string& topic, uint16_t nodeID, void (*callback)(const SensorEvent&), unsigned int typePeriod = 1000)
     : mTopic(prefix() + "/" + topic),
-      mFormat(nodeID, FormatID::Direction::publisher),
-      mRunning(true),
+      mFormat(nodeID, FormatID::Direction::subscriber),
       mTypeThread([this](){typeThreadFunc();}),
-      mTypePeriod(typePeriod)
+      mTypePeriod(typePeriod),
+      mCallback(callback)
     {
       SensorEvent e;
       EventType eType(e);
@@ -66,19 +75,11 @@ public:
       formatName << mFormat;
 
       ros::NodeHandle n;
-      mPub = ros::NodeHandle().advertise< aseia::SensorEvent >(mTopic+"/"+formatName.str(), 10);
+      mSub = ros::NodeHandle().subscribe< aseia_msgs::SensorEvent >(mTopic+"/"+formatName.str(), 10, &SensorEventSubscriber::unpack, this);
       mRunning=true;
   }
-  ~SensorEventPublisher(){
+  ~SensorEventSubscriber(){
     mRunning=false;
     mTypeThread.join();
-  }
-
-  void publish(const SensorEvent& e) { 
-    aseia::SensorEvent buffer;
-    buffer.event.resize(SensorEvent::size());
-    Serializer<std::vector<uint8_t>::iterator> s(buffer.event.begin(), buffer.event.end());
-    s << e;
-    mPub.publish(buffer);
   }
 };

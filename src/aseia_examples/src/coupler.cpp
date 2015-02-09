@@ -5,8 +5,8 @@
 #include <FormatID.h>
 #include <IO.h>
 
-#include <aseia/EventType.h>
-#include <aseia/SensorEvent.h>
+#include <aseia_msgs/EventType.h>
+#include <aseia_msgs/SensorEvent.h>
 
 #include <sstream>
 #include <string>
@@ -15,7 +15,6 @@
 #include <tuple>
 
 using namespace std;
-
 using FormatMap = map<FormatID, EventType>;
 using TopicMap = map<std::string, FormatMap>;
 
@@ -27,14 +26,14 @@ struct Forwarder{
     ros::Subscriber subscriber;
     ros::Publisher  publisher;
 
-    void forward(const aseia::SensorEvent::ConstPtr& msg){
+    void forward(const aseia_msgs::SensorEvent::ConstPtr& msg){
       publisher.publish(*msg);
     }
 
   public:
     Forwarder(const std::string& pubTopic, const std::string& subTopic) 
       : subscriber(ros::NodeHandle().subscribe(pubTopic, 10, &Forwarder::forward, this)),
-        publisher(ros::NodeHandle().advertise<aseia::SensorEvent>(subTopic, 10))
+        publisher(ros::NodeHandle().advertise<aseia_msgs::SensorEvent>(subTopic, 10))
     {}
 };
 
@@ -75,7 +74,7 @@ void handleNewSubscriber(const std::string& topic, FormatMap::iterator newSub){
       */
 }
 
-void handleEventType(const aseia::EventType::ConstPtr& msg) {
+void handleEventType(const aseia_msgs::EventType::ConstPtr& msg) {
 
   EventType type;
   FormatID format;
