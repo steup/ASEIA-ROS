@@ -7,6 +7,7 @@
 
 #include <aseia_msgs/EventType.h>
 #include <aseia_msgs/SensorEvent.h>
+#include <aseia_msgs/Channels.h>
 
 #include <sstream>
 #include <string>
@@ -17,9 +18,13 @@
 using namespace std;
 using FormatMap = map<FormatID, EventType>;
 using TopicMap = map<std::string, FormatMap>;
+using NodeMap  = map<std::pair<std::string, FormatID>, std::string>;
 
 TopicMap subs;
 TopicMap pubs;
+NodeMap  nodes;
+ros::Publisher channelPub;
+aseia_msgs::Channels channelsMsg;
 
 struct Forwarder{
   private:
@@ -34,7 +39,15 @@ struct Forwarder{
     Forwarder(const std::string& pubTopic, const std::string& subTopic) 
       : subscriber(ros::NodeHandle().subscribe(pubTopic, 10, &Forwarder::forward, this)),
         publisher(ros::NodeHandle().advertise<aseia_msgs::SensorEvent>(subTopic, 10))
-    {}
+    {
+      aseia_msgs::Channel newChannel;
+      newChannel.inTopic = pubTopic;
+      newChannel.outTopic = subTopic;
+      newChannel.inNode = nodes[pubTopic];
+      newChannel.outNode = nodes[subTopic];
+      channelsMsg.channels.push_back(newChannel);
+      channelPub.publish(channelsMsg);
+    }
 };
 
 using ForwardKey = tuple<string, FormatID, FormatID>;
@@ -74,16 +87,21 @@ void handleNewSubscriber(const std::string& topic, FormatMap::iterator newSub){
       */
 }
 
-void handleEventType(const aseia_msgs::EventType::ConstPtr& msg) {
+void handleEventType(const ros::MessageEvent<aseia_msgs::EventType const>& metaData) {
 
+  const aseia_msgs::EventType::ConstPtr& msg = metaData.getMessage();
   EventType type;
-  FormatID format;
+
+
+  ROS_INFO_STREAM("New node registered: " << metaData.getPublisherName());
 
   DeSerializer<decltype(msg->type.begin())> dType(msg->type.begin(), msg->type.end());
   dType >> type;
     
   DeSerializer<uint8_t*> dFormat((uint8_t*)&msg->format, (uint8_t*)&msg->format+sizeof(uint32_t));
   dFormat >> format;
+
+  nodes[std::pair<std::string, FormatID>(msg->topic, format)] = metaData.getPublisherName();
 
   if(format.direction() == FormatID::Direction::publisher){
     auto topicResult   = pubs.insert(make_pair(msg->topic, FormatMap()));
@@ -126,6 +144,8 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "AseiaEventCoupler");
   ros::NodeHandle n;
   ros::Subscriber typeSub  = n.subscribe("/sensors/management", 10, handleEventType);
+  channelPub = n.advertise<aseia_msgs::Channels>("/sensors/channels", 10, true);
+  channelPub.publish(channelsMsg);
   while(ros::ok())
     ros::spin();
   return 0;

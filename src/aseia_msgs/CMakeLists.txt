@@ -48,6 +48,8 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    EventType.msg
    SensorEvent.msg
+   Channel.msg
+   Channels.msg
 )
 
 ## Generate services in the 'srv' folder
