@@ -11,9 +11,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <thread>
-#include <atomic>
-#include <chrono>
 
 #include <aseia_msgs/SensorEvent.h>
 #include <aseia_msgs/EventType.h>
@@ -23,43 +20,28 @@ class SensorEventPublisher {
   private: 
     std::string           mTopic;
     FormatID              mFormat;
-    aseia_msgs::EventType mType;
     ros::Publisher        mPub; 
-    std::atomic<bool>     mRunning;
-    std::thread           mTypeThread;
-    const unsigned int    mTypePeriod;
-    
+    ros::Publisher        mTypePub; 
     
     constexpr std::string prefix() { return "/sensors"; }
     constexpr std::string managementTopic() { return prefix()+"/management"; }
-    void typeThreadFunc(){
-      ros::NodeHandle n;
-      ros::Publisher typePub = n.advertise<aseia_msgs::EventType>(managementTopic(), 10);
-      while(ros::ok() && mRunning) {
-        ROS_INFO_STREAM("publish: " << mType);
-        typePub.publish(mType);
-        std::this_thread::sleep_for(std::chrono::milliseconds(mTypePeriod));
-      }
-    }
 
 public:
-  SensorEventPublisher(const std::string& topic, uint16_t nodeID, unsigned int typePeriod = 1000)
+  SensorEventPublisher(const std::string& topic, uint16_t nodeID)
     : mTopic(prefix() + "/" + topic),
-      mFormat(nodeID, FormatID::Direction::publisher),
-      mRunning(true),
-      mTypeThread([this](){typeThreadFunc();}),
-      mTypePeriod(typePeriod)
+      mFormat(nodeID, FormatID::Direction::publisher)
     {
       SensorEvent e;
       EventType eType(e);
 
-      Serializer<uint8_t*> sFormat((uint8_t*)&mType.format, (uint8_t*)&mType.format+sizeof(uint32_t));
+      aseia_msgs::EventType msg;
+      msg.topic = mTopic;
+
+      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format, (uint8_t*)&msg.format+sizeof(uint32_t));
       sFormat << mFormat;
 
-      mType.topic = mTopic;
-
-      mType.type.resize(eType.size());
-      Serializer<decltype(mType.type.begin())> s(mType.type.begin(), mType.type.end());
+      msg.type.resize(eType.size());
+      Serializer<decltype(msg.type.begin())> s(msg.type.begin(), msg.type.end());
       s << eType;
 
       std::ostringstream formatName;
@@ -67,11 +49,18 @@ public:
 
       ros::NodeHandle n;
       mPub = ros::NodeHandle().advertise< aseia_msgs::SensorEvent >(mTopic+"/"+formatName.str(), 10);
-      mRunning=true;
+      mTypePub = n.advertise<aseia_msgs::EventType>(managementTopic(), 10, true);
+      ROS_INFO_STREAM("Sensor Publication Type: " << eType);
+      mTypePub.publish(msg);
+
   }
+
+  SensorEventPublisher(){
+    
+  }
+
   ~SensorEventPublisher(){
-    mRunning=false;
-    mTypeThread.join();
+
   }
 
   void publish(const SensorEvent& e) { 
