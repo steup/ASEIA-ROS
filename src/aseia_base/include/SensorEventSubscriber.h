@@ -12,8 +12,8 @@
 #include <sstream>
 #include <vector>
 
-#include <aseia_msgs//SensorEvent.h>
-#include <aseia_msgs/EventType.h>
+#include <aseia_base/SensorEvent.h>
+#include <aseia_base/EventType.h>
 
 template<typename SensorEvent>
 class SensorEventSubscriber {
@@ -28,7 +28,7 @@ class SensorEventSubscriber {
     constexpr std::string prefix() { return "/sensors"; }
     constexpr std::string managementTopic() { return prefix()+"/management"; }
 
-    void unpack(const aseia_msgs::SensorEvent::ConstPtr& msg) {
+    void unpack(const aseia_base::SensorEvent::ConstPtr& msg) {
       SensorEvent e;
       DeSerializer<decltype(msg->event.begin())> d(msg->event.begin(), msg->event.end());
       d >> e;
@@ -44,7 +44,7 @@ public:
       SensorEvent e;
       EventType eType(e);
 
-      aseia_msgs::EventType msg;
+      aseia_base::EventType msg;
       msg.topic = mTopic;
 
       Serializer<uint8_t*> sFormat((uint8_t*)&msg.format, (uint8_t*)&msg.format+sizeof(uint32_t));
@@ -58,8 +58,8 @@ public:
       formatName << mFormat;
 
       ros::NodeHandle n;
-      mSub = ros::NodeHandle().subscribe< aseia_msgs::SensorEvent >(mTopic+"/"+formatName.str(), 10, &SensorEventSubscriber::unpack, this);
-      mTypePub = n.advertise<aseia_msgs::EventType>(managementTopic(), 10, true);
+      mSub = ros::NodeHandle().subscribe(mTopic+"/"+formatName.str(), 10, &SensorEventSubscriber::unpack, this);
+      mTypePub = n.advertise<aseia_base::EventType>(managementTopic(), 10, true);
       ROS_INFO_STREAM("publish: " << eType);
       mTypePub.publish(msg);
   }

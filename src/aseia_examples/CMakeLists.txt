@@ -11,7 +11,7 @@ set(CMAKE_LD_FLAGS  "${aseia_LDFLAGS_OTHER}")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp aseia_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp aseia_base)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -83,10 +83,10 @@ find_package(catkin REQUIRED roscpp aseia_msgs)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include aseia_INCLUDEDIR
-#  LIBRARIES aseia
+	#INCLUDE_DIRS include
+#LIBRARIES ${aseia_LDFLAGS}
 #   CATKIN_DEPENDS genmsg
-#  DEPENDS system_lib
+#DEPENDS aseia
 )
 
 ###########
@@ -95,7 +95,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${aseia_INCLUDEDIR})
+include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDEDIR})
 
 ## Declare a cpp library
 # add_library(aseia
@@ -105,7 +105,6 @@ include_directories(include ${aseia_INCLUDEDIR})
 ## Declare a cpp executable
 add_executable(examplePub src/examplePub.cpp)
 add_executable(exampleSub src/exampleSub.cpp)
-add_executable(coupler    src/coupler.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -114,7 +113,6 @@ add_executable(coupler    src/coupler.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(examplePub ${catkin_LIBRARIES} ${aseia_LDFLAGS})
 target_link_libraries(exampleSub ${catkin_LIBRARIES} ${aseia_LDFLAGS})
-target_link_libraries(coupler    ${catkin_LIBRARIES} ${aseia_LDFLAGS})
 
 
 #############

@@ -12,8 +12,8 @@
 #include <sstream>
 #include <vector>
 
-#include <aseia_msgs/SensorEvent.h>
-#include <aseia_msgs/EventType.h>
+#include <aseia_base/SensorEvent.h>
+#include <aseia_base/EventType.h>
 
 template<typename SensorEvent>
 class SensorEventPublisher {
@@ -34,7 +34,7 @@ public:
       SensorEvent e;
       EventType eType(e);
 
-      aseia_msgs::EventType msg;
+      aseia_base::EventType msg;
       msg.topic = mTopic;
 
       Serializer<uint8_t*> sFormat((uint8_t*)&msg.format, (uint8_t*)&msg.format+sizeof(uint32_t));
@@ -48,8 +48,8 @@ public:
       formatName << mFormat;
 
       ros::NodeHandle n;
-      mPub = ros::NodeHandle().advertise< aseia_msgs::SensorEvent >(mTopic+"/"+formatName.str(), 10);
-      mTypePub = n.advertise<aseia_msgs::EventType>(managementTopic(), 10, true);
+      mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(mTopic+"/"+formatName.str(), 10);
+      mTypePub = n.advertise<aseia_base::EventType>(managementTopic(), 10, true);
       ROS_INFO_STREAM("Sensor Publication Type: " << eType);
       mTypePub.publish(msg);
 
@@ -64,7 +64,7 @@ public:
   }
 
   void publish(const SensorEvent& e) { 
-    aseia_msgs::SensorEvent buffer;
+    aseia_base::SensorEvent buffer;
     buffer.event.resize(SensorEvent::size());
     Serializer<std::vector<uint8_t>::iterator> s(buffer.event.begin(), buffer.event.end());
     s << e;

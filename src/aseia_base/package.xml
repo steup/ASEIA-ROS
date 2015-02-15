@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>aseia_msgs</name>
+  <name>aseia_base</name>
   <version>0.0.0</version>
-  <description>ASEIA container messages for ROS</description>
+  <description>Basic ASEIA message types and centralized channel management</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but mutiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/aseia_msgs</url> -->
+  <!-- <url type="website">http://wiki.ros.org/aseia_base</url> -->
 
 
   <!-- Author tags are optional, mutiple are allowed, one per tag -->
@@ -41,5 +41,8 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
   <run_depend>message_runtime</run_depend>
+
+
 </package>

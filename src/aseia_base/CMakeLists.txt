@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(aseia_msgs)
+project(aseia_base)
+
+include(FindPkgConfig)
+
+pkg_search_module(aseia REQUIRED aseia)
+
+set(CMAKE_CXX_FLAGS "${aseia_CFLAGS_OTHER}")
+set(CMAKE_LD_FLAGS  "${aseia_LDFLAGS_OTHER}")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -8,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   message_runtime
   std_msgs
+  roscpp
 )
 
 ## System dependencies are found with CMake's conventions
@@ -43,13 +51,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
+## Generate messages in the 'msg'
  add_message_files(
    FILES
    EventType.msg
    SensorEvent.msg
-   Channel.msg
-   Channels.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -82,10 +88,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES aseia_msgs
-#  CATKIN_DEPENDS message_generation message_runtime
-#  DEPENDS system_lib
+	INCLUDE_DIRS include ${aseia_INCLUDEDIRS}
+#LIBRARIES aseia
+#  CATKIN_DEPENDS other_catkin_pkg
+#DEPENDS aseia
 )
 
 ###########
@@ -94,27 +100,26 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDEDIR})
 
 ## Declare a cpp library
-# add_library(aseia_msgs
-#   src/${PROJECT_NAME}/aseia_msgs.cpp
+# add_library(aseia_base
+#   src/${PROJECT_NAME}/aseia_base.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(aseia_msgs_node src/aseia_msgs_node.cpp)
+# add_executable(aseia_base_node src/aseia_base_node.cpp)
+add_executable(manager src/manager.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(aseia_msgs_node aseia_msgs_generate_messages_cpp)
+# add_dependencies(aseia_base_node aseia_base_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(aseia_msgs_node
+# target_link_libraries(aseia_base_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(manager ${catkin_LIBRARIES} ${aseia_LDFLAGS})
 
 #############
 ## Install ##
@@ -131,18 +136,18 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS aseia_msgs aseia_msgs_node
+# install(TARGETS aseia_base manager
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+#)
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+#install(DIRECTORY include/${PROJECT_NAME}/
+#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#  FILES_MATCHING PATTERN "*.h"
+  #  PATTERN ".svn" EXCLUDE
+  #)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -156,7 +161,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_aseia_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_aseia_base.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
