@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aseia_base)
 
-include(FindPkgConfig)
-
-pkg_search_module(aseia REQUIRED aseia)
-
-set(CMAKE_CXX_FLAGS "${aseia_CFLAGS_OTHER}")
-set(CMAKE_LD_FLAGS  "${aseia_LDFLAGS_OTHER}")
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -18,10 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
 )
 
+
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(aseia REQUIRED)
 
-
+add_definitions(-std=c++11)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -88,10 +82,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-	INCLUDE_DIRS include ${aseia_INCLUDEDIRS}
+	INCLUDE_DIRS include
 #LIBRARIES aseia
-#  CATKIN_DEPENDS other_catkin_pkg
-#DEPENDS aseia
+  CATKIN_DEPENDS roscpp
+  DEPENDS aseia
 )
 
 ###########
@@ -100,7 +94,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDEDIR})
+include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDE_DIRS})
 
 ## Declare a cpp library
 # add_library(aseia_base
@@ -113,13 +107,13 @@ add_executable(manager src/manager.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(aseia_base_node aseia_base_generate_messages_cpp)
+add_dependencies(manager aseia_base_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(aseia_base_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(manager ${catkin_LIBRARIES} ${aseia_LDFLAGS})
+target_link_libraries(manager ${catkin_LIBRARIES} ${aseia_LIBRARIES})
 
 #############
 ## Install ##
@@ -146,8 +140,8 @@ target_link_libraries(manager ${catkin_LIBRARIES} ${aseia_LDFLAGS})
 #install(DIRECTORY include/${PROJECT_NAME}/
 #  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 #  FILES_MATCHING PATTERN "*.h"
-  #  PATTERN ".svn" EXCLUDE
-  #)
+#  PATTERN ".svn" EXCLUDE
+#)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

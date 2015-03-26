@@ -1,22 +1,15 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aseia_examples)
 
-include(FindPkgConfig)
-
-pkg_search_module(aseia REQUIRED aseia)
-
-set(CMAKE_CXX_FLAGS "${aseia_CFLAGS_OTHER}")
-set(CMAKE_LD_FLAGS  "${aseia_LDFLAGS_OTHER}")
-
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp aseia_base)
+find_package(catkin REQUIRED COMPONENTS aseia_base)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-
+add_definitions("-std=c++11")
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -95,7 +88,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDEDIR})
+include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp library
 # add_library(aseia
@@ -111,8 +104,8 @@ add_executable(exampleSub src/exampleSub.cpp)
 #add_dependencies(test)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(examplePub ${catkin_LIBRARIES} ${aseia_LDFLAGS})
-target_link_libraries(exampleSub ${catkin_LIBRARIES} ${aseia_LDFLAGS})
+target_link_libraries(examplePub ${catkin_LIBRARIES})
+target_link_libraries(exampleSub ${catkin_LIBRARIES})
 
 
 #############

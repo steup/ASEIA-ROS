@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>aseia_base</name>
   <version>0.0.0</version>
   <description>Basic ASEIA message types and centralized channel management</description>
@@ -41,8 +41,9 @@
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>message_generation</build_depend>
-  <build_depend>roscpp</build_depend>
-  <run_depend>message_runtime</run_depend>
+  <depend>roscpp</depend>
+  <depend>aseia</depend>
+  <exec_depend>message_runtime</exec_depend>
 
 
 </package>
