@@ -15,110 +15,181 @@
 #include <tuple>
 
 using namespace std;
-using Channel     = tuple< string, FormatID, FormatID >;
-using EventTopic  = pair< string, FormatID >;
-using FormatMap   = map< EventTopic, EventType >;
-using NodeMap     = map< EventTopic, string >;
-using FormatList  = list<FormatID>;
-using Pubs        = map<string, FormatList>;
-using Subs        = map<string, FormatList>;
 
-const string&   topic   ( const Channel&    value) { return get<0>(value); }
-const FormatID& pubId   ( const Channel&    value) { return get<1>(value); }
-const FormatID& subId   ( const Channel&    value) { return get<2>(value); }
-const string&   topic   ( const EventTopic& value) { return value.first;   }
-const FormatID& formatId( const EventTopic& value) { return value.second;  }
+using TypeName = string;
+using NodeName = string;
+struct FormattedType {
+	const string mTypeName;
+	const FormatID mFormatID;
+	const EventType mType;
+	FormattedType(const string& typeName, const FormatID& formatID, const EventType& type)
+		: mTypeName(typeName), mFormatID(formatID), mType(type)
+	{};
+	bool isCompatible(const FormattedType& b) const{
+		return mFormatID.direction() != b.mFormatID.direction() && mType == b.mType && mTypeName == mTypeName;
+	}
+	bool hasDifferentFormats(const FormattedType& b) const{
+		return mFormatID.direction() != b.mFormatID.direction() && mTypeName == b.mTypeName && !(mType == b.mType);
+	}
+	bool hasDifferentTypes(const FormattedType& b) const{
+		return mFormatID.direction() != b.mFormatID.direction() && mTypeName != b.mTypeName && !(mType == b.mType);
+	}
+	bool isPublisher() const{
+		return mFormatID.direction() == FormatID::Direction::publisher;
+	}
+};
+using FormatList = list<FormattedType>;
 
-FormatMap   formats;
-NodeMap     nodes;
-Pubs        pubs;
-Subs        subs;
+struct Channel {
+	const FormattedType& mPubType;
+	const FormattedType& mSubType;
+	Channel(const FormattedType& pubType, const FormattedType& subType)
+		: mPubType(pubType), mSubType(subType)
+	{}
+	bool operator<(const Channel& b) const{
+		if(mPubType.mTypeName <  b.mPubType.mTypeName)
+			return true;
+		if(mPubType.mTypeName >  b.mPubType.mTypeName)
+			return false;
+		if(mSubType.mTypeName <  b.mSubType.mTypeName)
+			return true;
+		return false;
+	}
+};
 
-struct Forwarder{
-  private:
+// \brief central data structure to hold P/S information //
+using NodeMap   = map<NodeName, FormatList>;
+
+struct EventHandler{
+	protected:
     ros::Subscriber mSubscriber;
     ros::Publisher  mPublisher;
-    const Channel&  mChannel;
-
-    void forward(const aseia_base::SensorEvent::ConstPtr& msg){
-      mPublisher.publish(*msg);
-    }
+    const NodeName& mPubName;
+    const NodeName& mSubName;
 
     static string createPubTopic(const Channel& channel){
     	ostringstream out;
-	out << pubId(channel);
-	return topic(channel) + "/" + out.str();
+			out << channel.mPubType.mFormatID;
+			return channel.mPubType.mTypeName + "/" + out.str();
     }
     
     static string createSubTopic(const Channel& channel){
     	ostringstream out;
-	out << subId(channel);
-	return topic(channel) + "/" + out.str();
+			out << channel.mSubType.mFormatID;
+			return channel.mSubType.mTypeName + "/" + out.str();
     }
-    
-  public:
-    Forwarder(const Channel& channel) 
-      : mSubscriber(ros::NodeHandle().subscribe(createPubTopic(channel), 10, &Forwarder::forward, this)),
+
+		virtual void handle(const aseia_base::SensorEvent::ConstPtr& msg) = 0;
+	private:
+		void incomingEvent(const aseia_base::SensorEvent::ConstPtr& msg){
+			handle(msg);
+		}
+
+	public:
+    EventHandler(const Channel& channel, const NodeName& pubName, const NodeName& subName) 
+      : mSubscriber(ros::NodeHandle().subscribe(createPubTopic(channel), 10, &EventHandler::incomingEvent, this)),
         mPublisher(ros::NodeHandle().advertise<aseia_base::SensorEvent>(createSubTopic(channel), 10)),
-	mChannel(channel)
+				mPubName(pubName),
+				mSubName(subName)
     {
-    	ROS_INFO_STREAM("New channel: (" << topic(channel) << ", " << pubId(channel) << ", " << subId(channel) << ")");
+    	ROS_INFO_STREAM("New channel: (" << channel.mPubType.mTypeName << ": " << mPubName << "-> " << mSubName << ")");
     }
+		
 };
 
-using ChannelMap = map<Channel, Forwarder>;
+struct Forwarder: public EventHandler{
+	private:
+		virtual void handle(const aseia_base::SensorEvent::ConstPtr& msg){
+			mPublisher.publish(*msg);
+		}
+  public:
+    Forwarder(const Channel& channel, const NodeName& pubName, const NodeName& subName) 
+      : EventHandler(channel, pubName, subName)
+    {}
+};
 
-ChannelMap channels;
+struct AttributeTransformer : public EventHandler{
+	private:
+//		Transformation trans;
 
-void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaData) {
+		virtual void handle(const aseia_base::SensorEvent::ConstPtr& msg){
+			//MetaEvent e;
+  		//DeSerializer<decltype(msg->type.begin())> dE(msg->event.begin(), msg->event.end());
+  		//dE >> e;
+			//trans(e);
+			aseia_base::SensorEvent newMsg;
+      //newMsg.event.resize(e.size());
+      //Serializer<decltype(newMsg.event.begin())> s(newMsg.event.begin(), newMsg.event.end());
+      //s << e;
+			//mPublisher.publish(newMsg);
+			ROS_ERROR_STREAM("transformation not implemented yet");
+		}
+  public:
+    AttributeTransformer(const Channel& channel, const NodeName& pubName, const NodeName& subName) 
+      : EventHandler(channel, pubName, subName)/*,
+				trans(channel.mPubFormat.mType, channel.mSubFormat.mType)*/
+    {}
+};
 
-  const aseia_base::EventType::ConstPtr& msg = metaData.getMessage();
-  EventType type;
-  FormatID  format;
+using SimpleChannelMap = map<Channel, Forwarder>;
+using FormatTransformChannelMap = map<Channel, AttributeTransformer>;
+SimpleChannelMap simpleChannels;
+FormatTransformChannelMap attrTransChannels;
+NodeMap nodes;
 
-  ROS_INFO_STREAM("New node registered: " << metaData.getPublisherName());
-
+void unpackEventTypeInfo(const aseia_base::EventType::ConstPtr& msg, EventType& type, FormatID& format){
   DeSerializer<decltype(msg->type.begin())> dType(msg->type.begin(), msg->type.end());
   dType >> type;
-    
+	
   DeSerializer<uint8_t*> dFormat((uint8_t*)&msg->format, (uint8_t*)&msg->format+sizeof(uint32_t));
   dFormat >> format;
 
-  auto nodeIter   = nodes.insert  (make_pair(EventTopic(msg->topic, format), metaData.getPublisherName()));
-  auto formatIter = formats.insert(make_pair(EventTopic(msg->topic, format), type));
+}
 
-  pair<map<string, FormatList>::iterator, bool> topicResult;
+const string& nodeName(NodeMap::iterator iter) { return iter->first; }
+FormatList& nodeFormatList(NodeMap::iterator iter) { return iter->second; }
 
-  if(format.direction() == FormatID::Direction::publisher)
-    topicResult = pubs.insert(make_pair(msg->topic, FormatList()));
-  else
-    topicResult = subs.insert(make_pair(msg->topic, FormatList()));
+void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaData) {
 
+  EventType type;
+  FormatID  format;
 
-  auto& topicFormatList = topicResult.first->second;
-  auto  topicFormatIter  = find( topicFormatList.begin(), topicFormatList.end(), format);
+  unpackEventTypeInfo(metaData.getMessage(), type, format);
 
-  if(topicFormatIter == topicFormatList.end()) {
-      topicFormatList.push_back(format);
+	const NodeName& newNodeName = metaData.getPublisherName();
+	const FormattedType newFormattedType = FormattedType(metaData.getMessage()->topic, format, type);
+  auto nodeResult = nodes.insert(make_pair(newNodeName, FormatList()));
+	auto nodeIter   = nodeResult.first;
+	nodeFormatList(nodeIter).emplace_back(newFormattedType);
+  
+	ROS_INFO_STREAM("New node registered: " << metaData.getPublisherName());
 
-      if(format.direction() == FormatID::Direction::publisher){
-      	const auto& subFormats = subs.find(msg->topic);
-	if(subFormats != subs.end())
-      		for(const auto& subFormat : subFormats->second)
-  			channels.emplace(piecewise_construct, 
-					 make_tuple(msg->topic, format, subFormat),
-					 make_tuple(Channel(msg->topic, format, subFormat))
-					);
-	}else{
-      	const auto& pubFormats = pubs.find(msg->topic);
-	if(pubFormats != pubs.end())
-      		for(const auto& pubFormat : pubFormats->second)
-      			channels.emplace(piecewise_construct, 
-					 make_tuple(msg->topic, pubFormat, format),
-					 make_tuple(Channel(msg->topic, pubFormat, format))
-					);
-    }
-  }
+	for(const auto& node : nodes)	{
+		const auto& nodeName = node.first;
+		const auto& formatList = node.second;
+		for(const auto& format : formatList) {
+			if(newFormattedType.isCompatible(format)) {
+				if(newFormattedType.isPublisher()) {
+					const Channel newChannel = Channel(newFormattedType, format);
+					simpleChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
+				} else {
+					const Channel newChannel = Channel(format, newFormattedType);
+					simpleChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
+			  }
+			}
+			if(newFormattedType.hasDifferentFormats(format)) {
+				if(newFormattedType.isPublisher()) {						const Channel newChannel = Channel(newFormattedType, format);
+					attrTransChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
+				} else {
+					const Channel newChannel = Channel(format, newFormattedType);
+					attrTransChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
+		  	}
+			}
+			if(newFormattedType.hasDifferentTypes(format)) {
+				// handle different types
+			}
+		}
+	}
 }
 
 int main(int argc, char** argv){
