@@ -6,7 +6,6 @@ project(aseia_base)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   message_generation
-  message_runtime
   std_msgs
   roscpp
 )
@@ -82,9 +81,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-	INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #LIBRARIES aseia
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp std_msgs
   DEPENDS aseia
 )
 
