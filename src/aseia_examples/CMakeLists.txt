@@ -96,7 +96,8 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 # )
 
 ## Declare a cpp executable
-add_executable(examplePub src/examplePub.cpp)
+add_executable(fittingPub src/fittingPub.cpp)
+add_executable(diffFormatPub src/diffFormatPub.cpp)
 add_executable(exampleSub src/exampleSub.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -104,7 +105,8 @@ add_executable(exampleSub src/exampleSub.cpp)
 #add_dependencies(test)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(examplePub ${catkin_LIBRARIES})
+target_link_libraries(fittingPub ${catkin_LIBRARIES})
+target_link_libraries(diffFormatPub ${catkin_LIBRARIES})
 target_link_libraries(exampleSub ${catkin_LIBRARIES})
 
 

@@ -5,8 +5,14 @@
 #include <BaseEvent.h>
 #include <ID.h>
 
-SensorEventPublisher<BaseEvent<>> pub;
-BaseEvent<> e;
+struct EventConfig : public BaseConfig {
+	using TimeValueType = Value<double, 1>;
+};
+
+using ThisEvent=BaseEvent<EventConfig>;
+
+SensorEventPublisher<ThisEvent> pub;
+ThisEvent e;
 
 void run(const ros::TimerEvent& msg){
     pub.publish(e);
@@ -17,10 +23,10 @@ int main(int argc, char** argv){
 
   ROS_INFO_STREAM("started");
 
-  pub = std::move(SensorEventPublisher<BaseEvent<>>("test", 0));
+  pub = std::move(SensorEventPublisher<ThisEvent>("test", 1));
 
   e.attribute(id::attribute::Position())    = { {0,0}, {0,0} };
-  e.attribute(id::attribute::Time())        = { {(unsigned int)ros::Time::now().toSec(), 1} };
+  e.attribute(id::attribute::Time())        = { {ros::Time::now().toSec(), 0} };
   e.attribute(id::attribute::PublisherID()) = { {0} };
   e.attribute(id::attribute::Validity())    = { {1.0} };
 
