@@ -6,7 +6,8 @@
 #include <ID.h>
 
 struct EventConfig : public BaseConfig {
-	using TimeValueType = Value<double, 1>;
+  using PositionValueType = Value<double, 2>;
+	using TimeValueType = Value<double, 1, 1, false>;
 };
 
 using ThisEvent=BaseEvent<EventConfig>;
@@ -26,7 +27,7 @@ int main(int argc, char** argv){
   pub = std::move(SensorEventPublisher<ThisEvent>("test", 1));
 
   e.attribute(id::attribute::Position())    = { {0,0}, {0,0} };
-  e.attribute(id::attribute::Time())        = { {ros::Time::now().toSec(), 0} };
+  e.attribute(id::attribute::Time())        = { {ros::Time::now().toSec()} };
   e.attribute(id::attribute::PublisherID()) = { {0} };
   e.attribute(id::attribute::Validity())    = { {1.0} };
 
