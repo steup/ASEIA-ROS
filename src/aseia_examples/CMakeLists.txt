@@ -98,7 +98,10 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 ## Declare a cpp executable
 add_executable(fittingPub src/fittingPub.cpp)
 add_executable(diffFormatPub src/diffFormatPub.cpp)
+add_executable(anglePub src/anglePub.cpp)
+
 add_executable(exampleSub src/exampleSub.cpp)
+add_executable(angleSub src/angleSub.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -107,7 +110,10 @@ add_executable(exampleSub src/exampleSub.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(fittingPub ${catkin_LIBRARIES})
 target_link_libraries(diffFormatPub ${catkin_LIBRARIES})
+target_link_libraries(anglePub ${catkin_LIBRARIES})
+
 target_link_libraries(exampleSub ${catkin_LIBRARIES})
+target_link_libraries(angleSub ${catkin_LIBRARIES})
 
 
 #############
