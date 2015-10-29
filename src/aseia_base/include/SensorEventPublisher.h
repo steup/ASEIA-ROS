@@ -37,11 +37,11 @@ public:
       aseia_base::EventType msg;
       msg.topic = mTopic;
 
-      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format, (uint8_t*)&msg.format+sizeof(uint32_t));
+      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
       sFormat << mFormat;
 
       msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.type.begin(), msg.type.end());
+      Serializer<decltype(msg.type.begin())> s(msg.type.begin());
       s << eType;
 
       std::ostringstream formatName;
@@ -66,7 +66,7 @@ public:
   void publish(const SensorEvent& e) { 
     aseia_base::SensorEvent buffer;
     buffer.event.resize(SensorEvent::size());
-    Serializer<std::vector<uint8_t>::iterator> s(buffer.event.begin(), buffer.event.end());
+    Serializer<std::vector<uint8_t>::iterator> s(buffer.event.begin());
     s << e;
     mPub.publish(buffer);
   }
