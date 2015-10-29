@@ -47,11 +47,11 @@ public:
       aseia_base::EventType msg;
       msg.topic = mTopic;
 
-      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format, (uint8_t*)&msg.format+sizeof(uint32_t));
+      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
       sFormat << mFormat;
 
       msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.type.begin(), msg.type.end());
+      Serializer<decltype(msg.type.begin())> s(msg.type.begin());
       s << eType;
 
       std::ostringstream formatName;
