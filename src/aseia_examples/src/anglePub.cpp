@@ -34,11 +34,11 @@ int main(int argc, char** argv){
 
   pub = std::move(SensorEventPublisher<ThisEvent>("angle", 0));
 
-  e.attribute(Position()).value()    = {{100, 20}, {200,20}};
-  e.attribute(Time()).value()        = {{(unsigned long)std::time(nullptr), 1}};
-  e.attribute(PublisherID()).value() = {{55}};
-  e.attribute(Validity()).value()    = {{80}};
-  e.attribute(Angle()).value()       = {{314}};
+  e.attribute(Position()).value()    = {{{100, 20}}, {{200,20}}};
+  e.attribute(Time()).value()        = {{{(unsigned long)std::time(nullptr), 1}}};
+  e.attribute(PublisherID()).value() = {{{55}}};
+  e.attribute(Validity()).value()    = {{{80}}};
+  e.attribute(Angle()).value()       = {{{314}}};
 
   ros::Timer t= ros::NodeHandle().createTimer(ros::Duration(1.0), &run);
   
