@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 
+#include <BaseEvent.h>
 #include <EventType.h>
 #include <FormatID.h>
 #include <IO.h>
@@ -14,7 +15,10 @@
 #include <map>
 #include <tuple>
 
+#include <cmath>
+
 using namespace std;
+using namespace id::attribute;
 
 using TypeName = string;
 using NodeName = string;
@@ -131,8 +135,131 @@ struct AttributeTransformer : public EventHandler{
     {}
 };
 
+// door is 1.2m long, cell size is 0.05m
+// FIXME: * at the moment this expects an AngleEvent and directly transforms it into a door grid
+//        * change to DetectionEvent with ObjectType "Door"
+struct DoorToGridTransformer: public EventHandler{
+  private:
+    Value<uint8_t, 24, 24, false> grid;
+
+    void drawPixel(int16_t x, int16_t y){
+      //ROS_INFO("x = %d, y = %d", x, y);
+      grid(y,x) = 77;
+    }
+
+    void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2){
+      int16_t delta_x(x2-x1);
+      signed char const ix((delta_x > 0) - (delta_x < 0));
+      delta_x = 2 * std::abs(delta_x);
+
+      int16_t delta_y(y2-y1);
+      signed char const iy((delta_y > 0) - (delta_y < 0));
+      delta_y = 2 * std::abs(delta_y);
+
+      drawPixel(x1, y1);
+
+      if(delta_x >= delta_y){
+        int16_t error(delta_y - (delta_x/2));
+
+        while(x1 != x2){
+          if((error >= 0) && (error || (ix > 0))){
+            error -= delta_x;
+            y1 += iy;
+          }
+
+          error += delta_y;
+          x1 += ix;
+
+          drawPixel(x1, y1);
+        }
+      }
+      else{
+        int16_t error(delta_x - (delta_y/2));
+
+        while(y1 != y2){
+          if((error >= 0) && (error || (iy > 0))){
+            error -= delta_y;
+            x1 += ix;
+          }
+
+          error += delta_x;
+          y1 += iy;
+
+          drawPixel(x1, y1);
+        }
+      }
+    }
+
+    struct AngleEventConfig : public BaseConfig
+    {
+      using PositionValueType    = Value<int16_t, 2>;
+      using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
+      using ValidityValueType    = Value<uint8_t, 1, 1, false>;
+      using PositionScale        = std::ratio<1, 100>;
+      using ValidityScale        = std::ratio<1, 100 >;      
+    };
+
+    using AngleAttribute = Attribute<Angle, Value<int16_t, 1>, Radian,  std::ratio<1, 100>>;
+    using AngleEvent = BaseEvent<AngleEventConfig>::append<AngleAttribute>::type;
+
+    struct DoorGridEventConfig : public BaseConfig
+    {
+      using PositionValueType    = Value<int16_t, 2>;
+      using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
+      using ValidityValueType    = Value<uint8_t, 1, 1, false>;
+      using PositionScale        = std::ratio<1, 100>;
+      using ValidityScale        = std::ratio<1, 100 >; 
+    };
+
+    using DoorGridAttribute = Attribute<OccupancyGrid, Value<uint8_t, 24, 24, false>, Dimensionless>;
+    using DoorGridEvent = BaseEvent<DoorGridEventConfig>::append<DoorGridAttribute>::type;
+
+    virtual void handle(const aseia_base::SensorEvent::ConstPtr& msg){
+      // unpack message into event
+      AngleEvent ae;
+      DeSerializer<decltype(msg->event.begin())> d(msg->event.begin(), msg->event.end());
+      d >> ae;
+
+      uint16_t doorLength = 23;
+      int16_t  startX     = 0;
+      int16_t  startY     = 0;
+
+      int16_t angle = ae.attribute(Angle()).value().value().value();
+      int16_t endX  = startX + doorLength * cos(angle);
+      int16_t endY  = startY + doorLength * sin(angle);
+      //ROS_INFO("endX = %d, endY = %d", endX, endY);
+
+      bresenham(startX, startY, endX, endY);
+
+      // build and publish a new message containing the Occupancy Grid
+      aseia_base::SensorEvent newMsg;
+      DoorGridEvent dge;
+
+      dge.attribute(Position()).value()      = { {{1500, 100}}, {{3200,200}} };
+      dge.attribute(PublisherID()).value()   = { {{(unsigned long)std::time(nullptr),1}} };
+      dge.attribute(Time()).value()          = { {{1338}} };
+      dge.attribute(Validity()).value()      = { {{90}} };
+      dge.attribute(OccupancyGrid()).value() = grid;
+
+      newMsg.event.resize(dge.size());
+      Serializer<decltype(newMsg.event.begin())> s(newMsg.event.begin());
+      s << dge;
+
+      mPublisher.publish(newMsg);
+    }
+
+  public:
+    DoorToGridTransformer(const Channel& channel, const NodeName& pubName, const NodeName& subName) 
+      : EventHandler(channel, pubName, subName)
+    {}
+};
+
 using SimpleChannelMap = map<Channel, Forwarder>;
 using FormatTransformChannelMap = map<Channel, AttributeTransformer>;
+
+using DoorToGridMap = map<Channel, DoorToGridTransformer>;
+DoorToGridMap doorChannels;
+
 SimpleChannelMap simpleChannels;
 FormatTransformChannelMap attrTransChannels;
 NodeMap nodes;
@@ -178,7 +305,8 @@ void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaD
 			  }
 			}
 			if(newFormattedType.hasDifferentFormats(format)) {
-				if(newFormattedType.isPublisher()) {						const Channel newChannel = Channel(newFormattedType, format);
+				if(newFormattedType.isPublisher()) {
+          const Channel newChannel = Channel(newFormattedType, format);
 					attrTransChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
 				} else {
 					const Channel newChannel = Channel(format, newFormattedType);
@@ -187,6 +315,27 @@ void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaD
 			}
 			if(newFormattedType.hasDifferentTypes(format)) {
 				// handle different types
+
+        // TODO
+        if(newFormattedType.isPublisher()) {            
+          //if(newFormattedType.typeName == "doorGrid" && format.typeName == "door"){
+            const Channel newChannel = Channel(newFormattedType, format);
+            doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
+          //}
+          // else if(newFormattedType.typeName == "TODO"){
+            // const Channel newChannel = Channel(newFormattedType, format);
+            // doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
+          // }
+        } else {
+            // if(newFormattedType.typeName == "TODO"){
+              const Channel newChannel = Channel(format, newFormattedType);
+              doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
+            // }
+            // else if(newFormattedType.typeName == "TODO"){
+              // const Channel newChannel = Channel(format, newFormattedType);
+              // doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
+            // }
+        }
 			}
 		}
 	}
