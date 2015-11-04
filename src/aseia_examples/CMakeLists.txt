@@ -102,6 +102,7 @@ add_executable(anglePub src/anglePub.cpp)
 
 add_executable(exampleSub src/exampleSub.cpp)
 add_executable(angleSub src/angleSub.cpp)
+add_executable(doorGridSub src/doorGridSub.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -114,6 +115,7 @@ target_link_libraries(anglePub ${catkin_LIBRARIES})
 
 target_link_libraries(exampleSub ${catkin_LIBRARIES})
 target_link_libraries(angleSub ${catkin_LIBRARIES})
+target_link_libraries(doorGridSub ${catkin_LIBRARIES})
 
 
 #############
