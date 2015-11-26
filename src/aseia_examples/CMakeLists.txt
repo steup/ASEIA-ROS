@@ -95,6 +95,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 #   src/${PROJECT_NAME}/aseia.cpp
 # )
 
+
 ## Declare a cpp executable
 add_executable(fittingPub src/fittingPub.cpp)
 add_executable(diffFormatPub src/diffFormatPub.cpp)
@@ -104,6 +105,11 @@ add_executable(exampleSub src/exampleSub.cpp)
 add_executable(angleSub src/angleSub.cpp)
 add_executable(doorGridSub src/doorGridSub.cpp)
 
+add_dependencies(fittingPub aseia_base_generate_messages_cpp)
+add_dependencies(diffFormatPub aseia_base_generate_messages_cpp)
+add_dependencies(anglePub aseia_base_generate_messages_cpp)
+add_dependencies(exampleSub aseia_base_generate_messages_cpp)
+add_dependencies(doorGridSub aseia_base_generate_messages_cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 #add_dependencies(test)
