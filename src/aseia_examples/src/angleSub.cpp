@@ -10,9 +10,7 @@ struct AngleEventConfig : public BaseConfig
 {
   using PositionValueType    = Value<int16_t, 2>;
   using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
-  using ValidityValueType    = Value<uint8_t, 1, 1, false>;
   using PositionScale        = std::ratio<1, 100>;
-  using ValidityScale        = std::ratio<1, 100 >;
     
 };
 

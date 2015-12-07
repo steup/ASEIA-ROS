@@ -194,9 +194,7 @@ struct DoorToGridTransformer: public EventHandler{
     {
       using PositionValueType    = Value<int16_t, 2>;
       using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
-      using ValidityValueType    = Value<uint8_t, 1, 1, false>;
       using PositionScale        = std::ratio<1, 100>;
-      using ValidityScale        = std::ratio<1, 100 >;      
     };
 
     using AngleAttribute = Attribute<Angle, Value<int16_t, 1>, Radian,  std::ratio<1, 100>>;
@@ -206,9 +204,7 @@ struct DoorToGridTransformer: public EventHandler{
     {
       using PositionValueType    = Value<int16_t, 2>;
       using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
-      using ValidityValueType    = Value<uint8_t, 1, 1, false>;
       using PositionScale        = std::ratio<1, 100>;
-      using ValidityScale        = std::ratio<1, 100 >; 
     };
 
     using DoorGridAttribute = Attribute<OccupancyGrid, Value<uint8_t, 24, 24, false>, Dimensionless>;
@@ -238,7 +234,6 @@ struct DoorToGridTransformer: public EventHandler{
       dge.attribute(Position()).value()      = { {{1500, 100}}, {{3200,200}} };
       dge.attribute(PublisherID()).value()   = { {{(unsigned long)std::time(nullptr),1}} };
       dge.attribute(Time()).value()          = { {{1338}} };
-      dge.attribute(Validity()).value()      = { {{90}} };
       dge.attribute(OccupancyGrid()).value() = grid;
 
       newMsg.event.resize(dge.size());
@@ -314,27 +309,16 @@ void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaD
 		  	}
 			}
 			if(newFormattedType.hasDifferentTypes(format)) {
-				// handle different types
-
-        // TODO
         if(newFormattedType.isPublisher()) {            
-          //if(newFormattedType.typeName == "doorGrid" && format.typeName == "door"){
+          if(newFormattedType.mTypeName == "/sensors/angle" && format.mTypeName == "/sensors/door"){ 
             const Channel newChannel = Channel(newFormattedType, format);
             doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
-          //}
-          // else if(newFormattedType.typeName == "TODO"){
-            // const Channel newChannel = Channel(newFormattedType, format);
-            // doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, newNodeName, nodeName));
-          // }
+          }
         } else {
-            // if(newFormattedType.typeName == "TODO"){
-              const Channel newChannel = Channel(format, newFormattedType);
-              doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
-            // }
-            // else if(newFormattedType.typeName == "TODO"){
-              // const Channel newChannel = Channel(format, newFormattedType);
-              // doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
-            // }
+            if(newFormattedType.mTypeName == "/sensors/door" && format.mTypeName == "/sensors/angle"){
+            const Channel newChannel = Channel(format, newFormattedType);
+            doorChannels.emplace(piecewise_construct, make_tuple(newChannel), make_tuple(newChannel, nodeName, newNodeName));
+          }
         }
 			}
 		}

@@ -11,9 +11,7 @@ struct AngleEventConfig : public BaseConfig
 {
   using PositionValueType    = Value<int16_t, 2>;
   using PublisherIDValueType = Value<uint16_t, 1, 1, false>;
-  using ValidityValueType    = Value<uint8_t, 1, 1, false>;
   using PositionScale        = std::ratio<1, 100>;
-  using ValidityScale        = std::ratio<1, 100 >;
     
 };
 
@@ -37,8 +35,7 @@ int main(int argc, char** argv){
   e.attribute(Position()).value()    = {{{100, 20}}, {{200,20}}};
   e.attribute(Time()).value()        = {{{(unsigned long)std::time(nullptr), 1}}};
   e.attribute(PublisherID()).value() = {{{55}}};
-  e.attribute(Validity()).value()    = {{{95}}};
-  e.attribute(Angle()).value()       = {{{0}}};
+  e.attribute(Angle()).value()       = {{{1}}};
 
   ros::Timer t= ros::NodeHandle().createTimer(ros::Duration(1.0), &run);
   
