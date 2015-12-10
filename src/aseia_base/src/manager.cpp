@@ -143,7 +143,6 @@ struct DoorToGridTransformer: public EventHandler{
     Value<uint8_t, 24, 24, false> grid;
 
     void drawPixel(int16_t x, int16_t y){
-      //ROS_INFO("x = %d, y = %d", x, y);
       grid(y,x) = 77;
     }
 
@@ -223,7 +222,6 @@ struct DoorToGridTransformer: public EventHandler{
       int16_t angle = ae.attribute(Angle()).value().value().value();
       int16_t endX  = startX + doorLength * cos(angle);
       int16_t endY  = startY + doorLength * sin(angle);
-      //ROS_INFO("endX = %d, endY = %d", endX, endY);
 
       bresenham(startX, startY, endX, endY);
 

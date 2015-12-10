@@ -25,12 +25,10 @@ using DoorGridEvent = BaseEvent<DoorGridEventConfig>::append<DoorGridAttribute>:
 
 void forward(const DoorGridEvent& e){
   nav_msgs::OccupancyGrid msg;
-  //ROS_INFO_STREAM("received: " << e);
 
-  ROS_INFO_STREAM("grid = " << e.attribute(OccupancyGrid()).value()(0,0));
   for(unsigned int y=0; y < 24; y++){
     for(unsigned int x=0; x < 24; x++){
-      msg.data.push_back(e.attribute(OccupancyGrid()).value()(x,y).value());
+      msg.data.push_back(e.attribute(OccupancyGrid()).value()(x,y));
     }
   }
 
