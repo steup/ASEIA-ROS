@@ -22,9 +22,8 @@ int main(int argc, char** argv){
   pub = std::move(SensorEventPublisher<ThisEvent>("test", 0));
 
   e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} }, { {0,0} } };
-  e.attribute(id::attribute::Time())        = { { {ros::Time::now().toSec(), 0} } };
+  e.attribute(id::attribute::Time())        = { { {(int64_t)ros::Time::now().toSec(), 0} } };
   e.attribute(id::attribute::PublisherID()) = { { {0} } };
-  e.attribute(id::attribute::Validity())    = { { {1.0} } };
 
   ros::Timer t= ros::NodeHandle().createTimer(ros::Duration(1.0), &run);
   
