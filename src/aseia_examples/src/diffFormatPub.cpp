@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 
   ROS_INFO_STREAM("started");
 
-  pub = std::move(SensorEventPublisher<ThisEvent>("test", 1));
+  pub = std::move(SensorEventPublisher<ThisEvent>(1));
 
   e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} } };
   e.attribute(id::attribute::Time())        = { { {ros::Time::now().toSec()} } };

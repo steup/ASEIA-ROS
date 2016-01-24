@@ -36,12 +36,14 @@ class SensorEventSubscriber {
     }
 
 public:
-  SensorEventSubscriber(const std::string& topic, uint16_t nodeID, void (*callback)(const SensorEvent&), unsigned int typePeriod = 1000)
-    : mTopic(prefix() + "/" + topic),
-      mFormat(nodeID, FormatID::Direction::subscriber),
+  SensorEventSubscriber(uint16_t nodeID, void (*callback)(const SensorEvent&), unsigned int typePeriod = 1000)
+    : mFormat(nodeID, FormatID::Direction::subscriber),
       mCallback(callback)
     {
       SensorEvent e;
+			std::ostringstream os;
+			os << prefix() << "/" << e.id().value();
+			mTopic = os.str();
       EventType eType(e);
 
       aseia_base::EventType msg;

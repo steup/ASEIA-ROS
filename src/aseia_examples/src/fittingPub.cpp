@@ -19,7 +19,7 @@ int main(int argc, char** argv){
 
   ROS_INFO_STREAM("started");
 
-  pub = std::move(SensorEventPublisher<ThisEvent>("test", 0));
+  pub = std::move(SensorEventPublisher<ThisEvent>(0));
 
   e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} }, { {0,0} } };
   e.attribute(id::attribute::Time())        = { { {(int64_t)ros::Time::now().toSec(), 0} } };

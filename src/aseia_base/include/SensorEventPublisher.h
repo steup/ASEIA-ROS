@@ -27,11 +27,13 @@ class SensorEventPublisher {
     constexpr std::string managementTopic() { return prefix()+"/management"; }
 
 public:
-  SensorEventPublisher(const std::string& topic, uint16_t nodeID)
-    : mTopic(prefix() + "/" + topic),
-      mFormat(nodeID, FormatID::Direction::publisher)
+  SensorEventPublisher(uint16_t nodeID)
+    : mFormat(nodeID, FormatID::Direction::publisher)
     {
       SensorEvent e;
+			std::ostringstream os;
+			os << prefix() << "/" << e.id().value();
+			mTopic = os.str();
       EventType eType(e);
 
       aseia_base::EventType msg;
