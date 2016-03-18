@@ -68,7 +68,7 @@ add_definitions(-std=c++11)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
+  std_msgs
 )
 
 ###################################
@@ -82,9 +82,9 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#LIBRARIES aseia
-  CATKIN_DEPENDS roscpp std_msgs
-  DEPENDS aseia
+# LIBRARIES aseia
+ CATKIN_DEPENDS roscpp
+  DEPENDS aseia_base_generate_messages_cpp aseia
 )
 
 ###########
@@ -106,7 +106,7 @@ add_executable(manager src/manager.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(manager aseia_base_generate_messages_cpp)
+add_dependencies(manager ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(aseia_base_node
