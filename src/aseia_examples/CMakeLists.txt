@@ -100,16 +100,23 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_executable(fittingPub src/fittingPub.cpp)
 add_executable(diffFormatPub src/diffFormatPub.cpp)
 add_executable(anglePub src/anglePub.cpp)
+add_executable(positionPub src/positionPub.cpp)
+add_executable(distancePub src/distancePub.cpp)
 
 add_executable(exampleSub src/exampleSub.cpp)
 add_executable(angleSub src/angleSub.cpp)
 add_executable(doorGridSub src/doorGridSub.cpp)
+add_executable(robotSub src/robotSub.cpp)
 
 add_dependencies(fittingPub aseia_base_generate_messages_cpp)
 add_dependencies(diffFormatPub aseia_base_generate_messages_cpp)
 add_dependencies(anglePub aseia_base_generate_messages_cpp)
+add_dependencies(positionPub aseia_base_generate_messages_cpp)
+add_dependencies(distancePub aseia_base_generate_messages_cpp)
+
 add_dependencies(exampleSub aseia_base_generate_messages_cpp)
 add_dependencies(doorGridSub aseia_base_generate_messages_cpp)
+add_dependencies(robotSub aseia_base_generate_messages_cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 #add_dependencies(test)
@@ -118,10 +125,13 @@ add_dependencies(doorGridSub aseia_base_generate_messages_cpp)
 target_link_libraries(fittingPub ${catkin_LIBRARIES})
 target_link_libraries(diffFormatPub ${catkin_LIBRARIES})
 target_link_libraries(anglePub ${catkin_LIBRARIES})
+target_link_libraries(positionPub ${catkin_LIBRARIES})
+target_link_libraries(distancePub ${catkin_LIBRARIES})
 
 target_link_libraries(exampleSub ${catkin_LIBRARIES})
 target_link_libraries(angleSub ${catkin_LIBRARIES})
 target_link_libraries(doorGridSub ${catkin_LIBRARIES})
+target_link_libraries(robotSub ${catkin_LIBRARIES})
 
 
 #############
