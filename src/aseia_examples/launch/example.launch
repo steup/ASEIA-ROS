@@ -3,11 +3,14 @@
 
   <!--<node name="AseiaFittingPub"    pkg="aseia_examples"  type="fittingPub"    />-->
   <!--<node name="AseiaDiffFormatPub" pkg="aseia_examples"  type="diffFormatPub" />-->
-  <node name="AseiaAnglePub"      pkg="aseia_examples"  type="anglePub"      />
+  <!--<node name="AseiaAnglePub"      pkg="aseia_examples"  type="anglePub"      />-->
+  <node name="AseiaPositionPub"      pkg="aseia_examples"  type="positionPub"      />
+  <node name="AseiaDistancePub"      pkg="aseia_examples"  type="distancePub"      />
   
   <!--<node name="AseiaExampleSub"    pkg="aseia_examples"  type="exampleSub"    />-->
   <node name="AseiaAngleSub"      pkg="aseia_examples"  type="angleSub"      />
   <node name="DoorGridSub"	      pkg="aseia_examples"  type="doorGridSub"   />
+  <node name="RobotSub"	      pkg="aseia_examples"  type="robotSub"   />
   
-  <node name="AseiaTypeCoupler"   pkg="aseia_base"      type="manager"       />
+  <node name="AseiaTypeCoupler" launch-prefix="perf record -g -e cycles:u" pkg="aseia_base"      type="manager"       />
 </launch>
