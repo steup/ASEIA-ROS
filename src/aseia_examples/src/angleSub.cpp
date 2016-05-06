@@ -18,7 +18,7 @@ using AngleAttribute = Attribute<Angle, Value<int16_t, 1>, Radian,  std::ratio<1
 using AngleEvent = BaseEvent<AngleEventConfig>::append<AngleAttribute>::type;
 
 void print(const AngleEvent& e){
-  ROS_INFO_STREAM("received: " << e);
+  ROS_INFO_STREAM("angle: " << e);
 }
 
 int main(int argc, char** argv){

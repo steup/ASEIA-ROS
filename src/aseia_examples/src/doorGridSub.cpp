@@ -49,15 +49,19 @@ void forward(const DoorGridEvent& e){
   pub.publish(msg);
 }
 
+void print(const DoorGridEvent& e){
+  ROS_INFO_STREAM("door: " << e);
+}
+
 int main(int argc, char** argv){
   ros::init(argc, argv, "AseiaTestSub");
 
   ROS_INFO_STREAM("started");
 
-  SensorEventSubscriber<DoorGridEvent> sub("door", 1, forward);
+  SensorEventSubscriber<DoorGridEvent> sub("door", 1, print);
 
-  ros::NodeHandle pubNode;
-  pub = pubNode.advertise<nav_msgs::OccupancyGrid>("map", 1000);
+  //ros::NodeHandle pubNode;
+  //pub = pubNode.advertise<nav_msgs::OccupancyGrid>("map", 1000);
 
 
   while(ros::ok())
