@@ -135,6 +135,9 @@ struct AttributeTransformer : public EventHandler{
     {}
 };
 
+using SimpleChannelMap = map<Channel, Forwarder>;
+using FormatTransformChannelMap = map<Channel, AttributeTransformer>;
+
 //--------------------------------------------------------------------------------------------------
 // handle angle events
 
@@ -147,7 +150,6 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
       signed char const iy((delta_y > 0) - (delta_y < 0));
       delta_y = 2 * std::abs(delta_y);
 
-      //drawPixel(x1, y1);
       grid(y1, x1) = 77;
 
       if(delta_x >= delta_y){
@@ -162,7 +164,6 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
           error += delta_y;
           x1 += ix;
 
-          //drawPixel(x1, y1);
           grid(y1, x1) = 77;
         }
       }
@@ -178,7 +179,6 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
           error += delta_x;
           y1 += iy;
 
-          //drawPixel(x1, y1);
           grid(y1, x1) = 77;
         }
       }
@@ -190,10 +190,6 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
 struct DoorToGridTransformer: public EventHandler{
   //private:
     Value<uint8_t, 24, 24, false> grid;
-
-    void drawPixel(int16_t x, int16_t y){
-      grid(y,x) = 77;
-    }  
 
     struct AngleEventConfig : public BaseConfig
     {
@@ -255,6 +251,9 @@ struct DoorToGridTransformer: public EventHandler{
       : EventHandler(channel, pubName, subName)
     {}
 };
+
+using DoorToGridMap = map<Channel, DoorToGridTransformer>;
+DoorToGridMap doorChannels;
 
 
 //--------------------------------------------------------------------------------------------------
@@ -331,6 +330,9 @@ struct DistanceToAngleTransformer: public EventHandler{
       : EventHandler(channel, pubName, subName)
     {}
 };
+
+using DistanceToAngle = map<Channel, DistanceToAngleTransformer>;
+DistanceToAngle distanceChannels;
 
 
 //--------------------------------------------------------------------------------------------------
@@ -414,18 +416,8 @@ struct PositionToGridTransformer: public EventHandler{
     {}
 };
 
-using SimpleChannelMap = map<Channel, Forwarder>;
-using FormatTransformChannelMap = map<Channel, AttributeTransformer>;
-
-using DoorToGridMap = map<Channel, DoorToGridTransformer>;
-DoorToGridMap doorChannels;
-
 using PositionToGridMap = map<Channel, PositionToGridTransformer>;
 PositionToGridMap positionChannels;
-
-using DistanceToAngle = map<Channel, DistanceToAngleTransformer>;
-DistanceToAngle distanceChannels;
-//--------------------------------------------------------------------------------------------------
 
 
 SimpleChannelMap simpleChannels;
