@@ -226,6 +226,7 @@ struct DoorToGridTransformer: public EventHandler{
       int16_t  startY     = 0;
 
       int16_t angle = ae.attribute(Angle()).value().value().value();
+      //int16_t angle = 0;
       int16_t endX  = startX + doorLength * cos(angle);
       int16_t endY  = startY + doorLength * sin(angle);
 
@@ -236,8 +237,8 @@ struct DoorToGridTransformer: public EventHandler{
       DoorGridEvent dge;
 
       dge.attribute(Position()).value()      = { {{-148, 0}}, {{195, 0}} };
-      dge.attribute(PublisherID()).value()   = { {{(unsigned long)std::time(nullptr),1}} };
-      dge.attribute(Time()).value()          = { {{1338}} };
+      dge.attribute(PublisherID()).value()   = { {{1338}} };
+      dge.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       dge.attribute(OccupancyGrid()).value() = grid;
 
       //ROS_INFO_STREAM("grid: " << dge);
@@ -304,7 +305,7 @@ struct DistanceToAngleTransformer: public EventHandler{
 
       float numerator = doorHingeX * hingeToDoorX;
       float denominator = sqrt(doorHingeX * doorHingeX ) * 
-                            sqrt(hingeToDoorX * hingeToDoorX + hingeToDoorY * hingeToDoorY);
+                          sqrt(hingeToDoorX * hingeToDoorX + hingeToDoorY * hingeToDoorY);
 
       float alpha = acos(numerator / denominator);
 
@@ -314,12 +315,9 @@ struct DistanceToAngleTransformer: public EventHandler{
       AngleEvent ae;
 
       ae.attribute(Position()).value()      = { {{3, 0}}, {{3, 0}} };
-      ae.attribute(PublisherID()).value()   = { {{(unsigned long)std::time(nullptr),1}} };
-      ae.attribute(Time()).value()          = { {{1338}} };
-      ae.attribute(Angle()).value()          = { {{alpha * 180 / M_PI}} };
-
-
-      //ROS_INFO_STREAM("grid: " << ae);
+      ae.attribute(PublisherID()).value()   = { {{1339}} };
+      ae.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
+      ae.attribute(Angle()).value()         = { {{alpha * 180 / M_PI}} };
 
       newMsg.event.resize(ae.size());
       Serializer<decltype(newMsg.event.begin())> s(newMsg.event.begin());
@@ -397,8 +395,8 @@ struct PositionToGridTransformer: public EventHandler{
       RobotGridEvent rge;
 
       rge.attribute(Position()).value()      = { {{3, 0}}, {{3, 0}} };
-      rge.attribute(PublisherID()).value()   = { {{(unsigned long)std::time(nullptr),1}} };
-      rge.attribute(Time()).value()          = { {{1338}} };
+      rge.attribute(PublisherID()).value()   = { {{1340}} };
+      rge.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       rge.attribute(OccupancyGrid()).value() = grid;
 
       //ROS_INFO_STREAM("grid: " << rge);
