@@ -232,7 +232,7 @@ struct DoorToGridTransformer: public EventHandler{
       aseia_base::SensorEvent newMsg;
       DoorGridEvent dge;
 
-      dge.attribute(Position()).value()      = { {{-148, 0}}, {{195, 0}} };
+      dge.attribute(Position()).value()      = { {{148, 0}}, {{195, 0}} };
       dge.attribute(PublisherID()).value()   = { {{1338}} };
       dge.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       dge.attribute(OccupancyGrid()).value() = grid;

@@ -33,6 +33,7 @@ void forward(const DoorGridEvent& e){
   }
 
   msg.header.stamp           = ros::Time::now();
+  msg.header.frame_id        = "door_map";
 
   //msg.info.map_load_time     =
   msg.info.resolution        = 0.05f;
@@ -58,10 +59,10 @@ int main(int argc, char** argv){
 
   ROS_INFO_STREAM("started");
 
-  SensorEventSubscriber<DoorGridEvent> sub("door", 1, print);
+  SensorEventSubscriber<DoorGridEvent> sub("door", 1, forward);
 
-  //ros::NodeHandle pubNode;
-  //pub = pubNode.advertise<nav_msgs::OccupancyGrid>("map", 1000);
+  ros::NodeHandle pubNode;
+  pub = pubNode.advertise<nav_msgs::OccupancyGrid>("/patch_map", 1000);
 
 
   while(ros::ok())
