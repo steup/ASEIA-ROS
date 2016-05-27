@@ -15,7 +15,4 @@
   <node name="MapMerger"       pkg="aseia_examples"  type="mapMerger"   />
   
   <node name="AseiaTypeCoupler" pkg="aseia_base"      type="manager"       />
-
-  <!--<node name="AseiaTypeCoupler" launch-prefix="perf record -g -e cpu-clock:u" pkg="aseia_base"      type="manager"       />-->
-  <!--<node name="AseiaTypeCoupler" launch-prefix="perf stat -e cpu-clock -o perf-stat10-total.txt --append" pkg="aseia_base"      type="manager"       />-->
 </launch>

@@ -232,7 +232,7 @@ struct DoorToGridTransformer: public EventHandler{
       aseia_base::SensorEvent newMsg;
       DoorGridEvent dge;
 
-      dge.attribute(Position()).value()      = { {{148, 0}}, {{195, 0}} };
+      dge.attribute(Position()).value()      = ae.attribute(Position()).value();
       dge.attribute(PublisherID()).value()   = { {{1338}} };
       dge.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       dge.attribute(OccupancyGrid()).value() = grid;
@@ -313,7 +313,7 @@ struct DistanceToAngleTransformer: public EventHandler{
       aseia_base::SensorEvent newMsg;
       AngleEvent ae;
 
-      ae.attribute(Position()).value()      = { {{3, 0}}, {{3, 0}} };
+      ae.attribute(Position()).value()      = de.attribute(Position()).value();
       ae.attribute(PublisherID()).value()   = { {{1339}} };
       ae.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       ae.attribute(Angle()).value()         = { {{alpha * 180 / M_PI}} };
@@ -396,7 +396,7 @@ struct PositionToGridTransformer: public EventHandler{
       aseia_base::SensorEvent newMsg;
       RobotGridEvent rge;
 
-      rge.attribute(Position()).value()      = { {{3, 0}}, {{3, 0}} };
+      rge.attribute(Position()).value()      = pe.attribute(Position()).value();
       rge.attribute(PublisherID()).value()   = { {{1340}} };
       rge.attribute(Time()).value()          = { {{(unsigned long)std::time(nullptr),1}} };
       rge.attribute(OccupancyGrid()).value() = grid;
