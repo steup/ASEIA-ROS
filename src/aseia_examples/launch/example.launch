@@ -4,6 +4,8 @@
   <!--<node name="AseiaFittingPub"    pkg="aseia_examples"  type="fittingPub"    />-->
   <!--<node name="AseiaDiffFormatPub" pkg="aseia_examples"  type="diffFormatPub" />-->
   <node name="AseiaAnglePub"      pkg="aseia_examples"  type="anglePub"      />
+  <node name="AseiaAnglePub2"      pkg="aseia_examples"  type="anglePub2"      />
+  <node name="AseiaAnglePub3"      pkg="aseia_examples"  type="anglePub3"      />
   <node name="AseiaPositionPub"      pkg="aseia_examples"  type="positionPub"      />
   <node name="AseiaDistancePub"      pkg="aseia_examples"  type="distancePub"      />
   
