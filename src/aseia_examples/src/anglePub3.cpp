@@ -26,7 +26,7 @@ void run(const ros::TimerEvent& msg){
 }
 
 int main(int argc, char** argv){
-  ros::init(argc, argv, "AnglePub");
+  ros::init(argc, argv, "AnglePub3");
 
   ROS_INFO_STREAM("started");
 
@@ -34,7 +34,7 @@ int main(int argc, char** argv){
 
   e.attribute(Position()).value()    = {{{100, 20}}, {{200,20}}};
   e.attribute(Time()).value()        = {{{(unsigned long)std::time(nullptr), 1}}};
-  e.attribute(PublisherID()).value() = {{{55}}};
+  e.attribute(PublisherID()).value() = {{{59}}};
   e.attribute(Angle()).value()       = {{{0}}};
 
   ros::Timer t= ros::NodeHandle().createTimer(ros::Duration(1.0), &run);
