@@ -9,8 +9,10 @@ nav_msgs::OccupancyGrid merged_map;
 ros::Publisher map_pub;
 
 ros::Time last_pub;
-bool is_door_merged = false;
-bool is_robot_merged = false;
+const short DOOR_COUNT = 3;
+const short ROBOT_COUNT = 1;
+short door_merge_count = 0;
+short robot_merge_count = 0;
 
 void set_static_map(const nav_msgs::OccupancyGrid::ConstPtr& msg){
     static_map.header.frame_id = msg->header.frame_id;
@@ -52,15 +54,15 @@ void merge(const nav_msgs::OccupancyGrid::ConstPtr& msg){
 // merge maps, when a patch map with a certain identifier has not been merged yet
 void merge_maps(const nav_msgs::OccupancyGrid::ConstPtr& msg){
 
-    if(msg->header.frame_id == "door_map" && !is_door_merged){
+    if(msg->header.frame_id == "door_map" && door_merge_count < DOOR_COUNT){
         merge(msg);
-        is_door_merged = true;
+        door_merge_count++;
         std::cout << "merged door" << std::endl;
     }
 
-    if(msg->header.frame_id == "robot_map" && !is_robot_merged){
+    if(msg->header.frame_id == "robot_map" && robot_merge_count < ROBOT_COUNT){
         merge(msg); 
-        is_robot_merged = true;
+        robot_merge_count++;
 
         std::cout << "merged robot" << std::endl;
     }
@@ -73,8 +75,8 @@ void publish_map(const ros::TimerEvent&){
     map_pub.publish(merged_map);
 
     merged_map = static_map;
-    is_door_merged  = false;
-    is_robot_merged = false;
+    door_merge_count  = 0;
+    robot_merge_count = 0;
 }
 
 int main(int argc, char **argv){
