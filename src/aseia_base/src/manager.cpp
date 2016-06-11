@@ -150,7 +150,7 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
       signed char const iy((delta_y > 0) - (delta_y < 0));
       delta_y = 2 * std::abs(delta_y);
 
-      grid(y1, x1) = 77;
+      grid(y1, x1) = 100;
 
       if(delta_x >= delta_y){
         int16_t error(delta_y - (delta_x/2));
@@ -164,7 +164,7 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
           error += delta_y;
           x1 += ix;
 
-          grid(y1, x1) = 77;
+          grid(y1, x1) = 100;
         }
       }
       else{
@@ -179,7 +179,7 @@ void bresenham(int16_t x1, int16_t y1, int16_t x2, int16_t y2, Value<uint8_t, 24
           error += delta_x;
           y1 += iy;
 
-          grid(y1, x1) = 77;
+          grid(y1, x1) = 100;
         }
       }
     }
@@ -223,8 +223,8 @@ struct DoorToGridTransformer: public EventHandler{
 
       int16_t angle = ae.attribute(Angle()).value().value().value();
       //int16_t angle = 0;
-      int16_t endX  = startX + doorLength * cos(angle);
-      int16_t endY  = startY + doorLength * sin(angle);
+      int16_t endX  = startX + doorLength * cos((double)angle/100);
+      int16_t endY  = startY + doorLength * sin((double)angle/100);
 
       bresenham(startX, startY, endX, endY, grid);
 
@@ -348,7 +348,7 @@ void drawCircle(uint16_t centerX, uint16_t centerY, uint16_t r, Value<uint8_t, 1
       uint16_t dy = centerY - tmpY;
 
       if((dx*dx + dy*dy) <= r*r){
-        grid(y,x) = 77;
+        grid(y,x) = 100;
       }
     }
   }

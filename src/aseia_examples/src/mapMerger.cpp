@@ -3,10 +3,13 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <map_msgs/OccupancyGridUpdate.h>
 
 nav_msgs::OccupancyGrid static_map;
 nav_msgs::OccupancyGrid merged_map;
+map_msgs::OccupancyGridUpdate update_map;
 ros::Publisher map_pub;
+ros::Publisher map_update_pub;
 
 ros::Time last_pub;
 const short DOOR_COUNT = 3;
@@ -72,6 +75,13 @@ void publish_map(const ros::TimerEvent&){
 
     // TODO: is this really necessary here or should this be done when merging?
     merged_map.header.stamp = ros::Time::now();
+    update_map.x = 0;
+    update_map.y = 0;
+    update_map.width = 1024;
+    update_map.height = 1024;
+    update_map.data = merged_map.data;
+
+    map_update_pub.publish(update_map);
     map_pub.publish(merged_map);
 
     merged_map = static_map;
@@ -83,7 +93,8 @@ int main(int argc, char **argv){
     ros::init(argc, argv, "grid_merger");
     ros::NodeHandle n;
 
-    map_pub = n.advertise<nav_msgs::OccupancyGrid>("/merged_map", 10);
+    map_update_pub = n.advertise<map_msgs::OccupancyGridUpdate>("/map_updates", 1);
+    map_pub = n.advertise<nav_msgs::OccupancyGrid>("/map", 60);
     ros::Subscriber staticMapSub = n.subscribe("/static_map", 1, set_static_map);
     ros::Subscriber patchMapSub  = n.subscribe("/patch_map", 1, merge_maps);
 
