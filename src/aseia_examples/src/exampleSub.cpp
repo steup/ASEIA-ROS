@@ -13,7 +13,7 @@ int main(int argc, char** argv){
 
   ROS_INFO_STREAM("started");
 
-  SensorEventSubscriber<BaseEvent<>> sub(1, print);
+  SensorEventSubscriber<BaseEvent<>> sub(print);
 
   while(ros::ok())
     ros::spin();

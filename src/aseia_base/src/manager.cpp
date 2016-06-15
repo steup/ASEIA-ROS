@@ -19,11 +19,8 @@ using namespace std;
 using TypeName = string;
 using NodeName = string;
 struct FormattedType  : public EventType {
-	enum class Type : uint8_t {
-		PUBLISHER = 1,
-		SUBSCRIBER = 2
-	} mType;
-	FormattedType(const EventType& eT, Type type)
+  uint8_t mType;
+	FormattedType(const EventType& eT, uint8_t type)
 		: EventType(eT), mType(type)
 	{};
 	bool isCompatible(const FormattedType& b) const{
@@ -36,8 +33,13 @@ struct FormattedType  : public EventType {
 		return *this != b && mType != b.mType;
 	}
 	bool isPublisher() const{
-		return mType == Type::PUBLISHER;
+		return mType == aseia_base::EventType::PUBLISHER;
 	}
+  string topic() const {
+    ostringstream os;
+    os << "/sensors/" << EventID(*this) << "/" << FormatID(*this);
+    return os.str();
+  }
 };
 using FormatList = list<FormattedType>;
 
@@ -48,11 +50,19 @@ struct Channel {
 		: mPubType(pubType), mSubType(subType)
 	{}
 	bool operator<(const Channel& b) const{
-		if(mPubType.mTypeName <  b.mPubType.mTypeName)
+		if(EventID(mPubType) <  EventID(b.mPubType))
 			return true;
-		if(mPubType.mTypeName >  b.mPubType.mTypeName)
+		if(EventID(mPubType) >  EventID(b.mPubType))
 			return false;
-		if(mSubType.mTypeName <  b.mSubType.mTypeName)
+		if(EventID(mSubType) <  EventID(b.mSubType))
+			return true;
+		if(EventID(mSubType) >  EventID(b.mSubType))
+			return false;
+		if(FormatID(mPubType) <  FormatID(b.mPubType))
+			return true;
+		if(FormatID(mPubType) >  FormatID(b.mPubType))
+			return false;
+		if(FormatID(mSubType) <  FormatID(b.mSubType))
 			return true;
 		return false;
 	}
@@ -69,15 +79,11 @@ struct EventHandler{
     const NodeName& mSubName;
 
     static string createPubTopic(const Channel& channel){
-    	ostringstream out;
-			out << channel.mPubType.mFormatID;
-			return channel.mPubType.mTypeName + "/" + out.str();
+			return channel.mPubType.topic();
     }
     
     static string createSubTopic(const Channel& channel){
-    	ostringstream out;
-			out << channel.mSubType.mFormatID;
-			return channel.mSubType.mTypeName + "/" + out.str();
+			return channel.mSubType.topic();
     }
 
 		virtual void handle(const aseia_base::SensorEvent::ConstPtr& msg) = 0;
@@ -93,7 +99,7 @@ struct EventHandler{
 				mPubName(pubName),
 				mSubName(subName)
     {
-    	ROS_INFO_STREAM("New channel: (" << channel.mPubType.mTypeName << ": " << mPubName << "-> " << mSubName << ")");
+    	ROS_INFO_STREAM("New channel: ( /sensors/" << EventID(channel.mPubType) << ": " << mPubName << "-> " << mSubName << ")");
     }
 		
 };
@@ -138,13 +144,9 @@ SimpleChannelMap simpleChannels;
 FormatTransformChannelMap attrTransChannels;
 NodeMap nodes;
 
-void unpackEventTypeInfo(const aseia_base::EventType::ConstPtr& msg, EventType& type, FormatID& format){
-  DeSerializer<decltype(msg->type.begin())> dType(msg->type.begin(), msg->type.end());
+void unpackEventTypeInfo(const aseia_base::EventType& msg, EventType& type){
+  DeSerializer<decltype(msg.data.begin())> dType(msg.data.begin(), msg.data.end());
   dType >> type;
-	
-  DeSerializer<uint8_t*> dFormat((uint8_t*)&msg->format, (uint8_t*)&msg->format+sizeof(uint32_t));
-  dFormat >> format;
-
 }
 
 const string& nodeName(NodeMap::iterator iter) { return iter->first; }
@@ -153,12 +155,11 @@ FormatList& nodeFormatList(NodeMap::iterator iter) { return iter->second; }
 void handleEventType(const ros::MessageEvent<aseia_base::EventType const>& metaData) {
 
   EventType type;
-  FormatID  format;
 
-  unpackEventTypeInfo(metaData.getMessage(), type, format);
+  unpackEventTypeInfo(*metaData.getMessage(), type);
 
 	const NodeName& newNodeName = metaData.getPublisherName();
-	const FormattedType newFormattedType = FormattedType(metaData.getMessage()->topic, format, type);
+	const FormattedType newFormattedType = FormattedType(type, metaData.getMessage()->type);
   auto nodeResult = nodes.insert(make_pair(newNodeName, FormatList()));
 	auto nodeIter   = nodeResult.first;
 	nodeFormatList(nodeIter).emplace_back(newFormattedType);

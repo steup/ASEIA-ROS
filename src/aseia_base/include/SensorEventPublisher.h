@@ -33,30 +33,22 @@ public:
 
 			msg.type = aseia_base::EventType::PUBLISHER;
 
-			mFormat= FormatID(EventType(e))
-
-			os << prefix() << "/" << EventID(e);
-			msg.topic = os.str();
-
       EventType eType(e);
 
-      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
-      sFormat << mFormat;
+			os << prefix() << "/" << EventID(eType);
+			msg.topic = os.str();
 
-      msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.data.begin());
+
+      msg.data.resize(eType.size());
+      Serializer<decltype(msg.data.begin())> s(msg.data.begin());
       s << eType;
 
-			os << "/" << mFormat;
+			os << "/" << FormatID(eType);
 
       mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(os.str(), 1);
       ROS_INFO_STREAM("Sensor Publication Type: " << eType);
-      mTypePub.publish(msg);
+      typePub.publish(msg);
 
-  }
-
-  SensorEventPublisher(){
-    
   }
 
   ~SensorEventPublisher(){
