@@ -5,12 +5,12 @@
 #include <ros/console.h>
 
 #include <FormatID.h>
+#include <EventID.h>
 #include <EventType.h>
 #include <IO.h>
 
 #include <string>
 #include <sstream>
-#include <vector>
 
 #include <aseia_base/SensorEvent.h>
 #include <aseia_base/EventType.h>
@@ -18,40 +18,38 @@
 template<typename SensorEvent>
 class SensorEventPublisher {
   private: 
-    std::string           mTopic;
-    FormatID              mFormat;
     ros::Publisher        mPub; 
-    ros::Publisher        mTypePub; 
     
     constexpr std::string prefix() { return "/sensors"; }
     constexpr std::string managementTopic() { return prefix()+"/management"; }
 
 public:
-  SensorEventPublisher(uint16_t nodeID)
-    : mFormat(nodeID, FormatID::Direction::publisher)
-    {
+  SensorEventPublisher() {
       SensorEvent e;
-			std::ostringstream os;
-			os << prefix() << "/" << e.id().value();
-			mTopic = os.str();
-      EventType eType(e);
-
       aseia_base::EventType msg;
-      msg.topic = mTopic;
+			std::ostringstream os;
+      ros::NodeHandle n;
+			ros::Publisher typePub = n.advertise<aseia_base::EventType>(managementTopic(), 1, true);
+
+			msg.type = aseia_base::EventType::PUBLISHER;
+
+			mFormat= FormatID(EventType(e))
+
+			os << prefix() << "/" << EventID(e);
+			msg.topic = os.str();
+
+      EventType eType(e);
 
       Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
       sFormat << mFormat;
 
       msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.type.begin());
+      Serializer<decltype(msg.type.begin())> s(msg.data.begin());
       s << eType;
 
-      std::ostringstream formatName;
-      formatName << mFormat;
+			os << "/" << mFormat;
 
-      ros::NodeHandle n;
-      mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(mTopic+"/"+formatName.str(), 10);
-      mTypePub = n.advertise<aseia_base::EventType>(managementTopic(), 10, true);
+      mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(os.str(), 1);
       ROS_INFO_STREAM("Sensor Publication Type: " << eType);
       mTypePub.publish(msg);
 

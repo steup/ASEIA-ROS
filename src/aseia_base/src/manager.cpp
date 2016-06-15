@@ -18,24 +18,25 @@ using namespace std;
 
 using TypeName = string;
 using NodeName = string;
-struct FormattedType {
-	const string mTypeName;
-	const FormatID mFormatID;
-	const EventType mType;
-	FormattedType(const string& typeName, const FormatID& formatID, const EventType& type)
-		: mTypeName(typeName), mFormatID(formatID), mType(type)
+struct FormattedType  : public EventType {
+	enum class Type : uint8_t {
+		PUBLISHER = 1,
+		SUBSCRIBER = 2
+	} mType;
+	FormattedType(const EventType& eT, Type type)
+		: EventType(eT), mType(type)
 	{};
 	bool isCompatible(const FormattedType& b) const{
-		return mFormatID.direction() != b.mFormatID.direction() && mType == b.mType && mTypeName == mTypeName;
+		return *this == b && mType != b.mType;
 	}
 	bool hasDifferentFormats(const FormattedType& b) const{
-		return mFormatID.direction() != b.mFormatID.direction() && mTypeName == b.mTypeName && !(mType == b.mType);
+		return *this != b && mType != b.mType && EventID(*this) == EventID(b);
 	}
 	bool hasDifferentTypes(const FormattedType& b) const{
-		return mFormatID.direction() != b.mFormatID.direction() && mTypeName != b.mTypeName && !(mType == b.mType);
+		return *this != b && mType != b.mType;
 	}
 	bool isPublisher() const{
-		return mFormatID.direction() == FormatID::Direction::publisher;
+		return mType == Type::PUBLISHER;
 	}
 };
 using FormatList = list<FormattedType>;
