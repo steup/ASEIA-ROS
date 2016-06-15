@@ -18,10 +18,7 @@
 template<typename SensorEvent>
 class SensorEventSubscriber {
  private: 
-    std::string           mTopic;
-    FormatID              mFormat;
     ros::Subscriber       mSub;
-    ros::Publisher        mTypePub;
     void (*mCallback)(const SensorEvent&);
     
     
@@ -36,33 +33,35 @@ class SensorEventSubscriber {
     }
 
 public:
-  SensorEventSubscriber(uint16_t nodeID, void (*callback)(const SensorEvent&), unsigned int typePeriod = 1000)
-    : mFormat(nodeID, FormatID::Direction::subscriber),
-      mCallback(callback)
+  SensorEventSubscriber(void (*callback)(const SensorEvent&), unsigned int typePeriod = 1000)
+  	: mCallback(callback)
     {
-      SensorEvent e;
-			std::ostringstream os;
-			os << prefix() << "/" << e.id().value();
-			mTopic = os.str();
-      EventType eType(e);
-
+			SensorEvent e;
       aseia_base::EventType msg;
-      msg.topic = mTopic;
+			std::ostringstream os;
+      ros::NodeHandle n;
+			ros::Publisher typePub = n.advertise<aseia_base::EventType>(managementTopic(), 1, true);
+
+			msg.type = aseia_base::EventType::SUBSCRIBER;
+
+			mFormat= FormatID(EventType(e))
+
+			os << prefix() << "/" << EventID(e);
+			msg.topic = os.str();
+
+      EventType eType(e);
 
       Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
       sFormat << mFormat;
 
       msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.type.begin());
+      Serializer<decltype(msg.type.begin())> s(msg.data.begin());
       s << eType;
 
-      std::ostringstream formatName;
-      formatName << mFormat;
+			os << "/" << mFormat;
 
-      ros::NodeHandle n;
-      mSub = ros::NodeHandle().subscribe(mTopic+"/"+formatName.str(), 10, &SensorEventSubscriber::unpack, this);
-      mTypePub = n.advertise<aseia_base::EventType>(managementTopic(), 10, true);
-      ROS_INFO_STREAM("publish: " << eType);
+      mSub = ros::NodeHandle().subscribe(os.str(), 1, &SensorEventSubscriber::unpack, this);
+      ROS_INFO_STREAM("Sensor Publication Type: " << eType);
       mTypePub.publish(msg);
   }
   ~SensorEventSubscriber(){
