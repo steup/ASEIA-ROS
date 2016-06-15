@@ -43,26 +43,21 @@ public:
 			ros::Publisher typePub = n.advertise<aseia_base::EventType>(managementTopic(), 1, true);
 
 			msg.type = aseia_base::EventType::SUBSCRIBER;
-
-			mFormat= FormatID(EventType(e))
-
-			os << prefix() << "/" << EventID(e);
-			msg.topic = os.str();
-
       EventType eType(e);
 
-      Serializer<uint8_t*> sFormat((uint8_t*)&msg.format);
-      sFormat << mFormat;
+			os << prefix() << "/" << EventID(eType);
+			msg.topic = os.str();
 
-      msg.type.resize(eType.size());
-      Serializer<decltype(msg.type.begin())> s(msg.data.begin());
+
+      msg.data.resize(eType.size());
+      Serializer<decltype(msg.data.begin())> s(msg.data.begin());
       s << eType;
 
-			os << "/" << mFormat;
+			os << "/" << FormatID(eType);
 
       mSub = ros::NodeHandle().subscribe(os.str(), 1, &SensorEventSubscriber::unpack, this);
-      ROS_INFO_STREAM("Sensor Publication Type: " << eType);
-      mTypePub.publish(msg);
+      ROS_INFO_STREAM("Sensor Subscription Type: " << eType);
+      typePub.publish(msg);
   }
   ~SensorEventSubscriber(){
   }
