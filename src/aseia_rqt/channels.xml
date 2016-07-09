@@ -1,0 +1,17 @@
+<library path="src">
+  <class name="AseiaChannelsGUI" type="aseia_rqt.channels.ChannelsGUI" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      An GUI to display current communication channels of ASEIA
+    </description>
+    <qtgui>
+      <group>
+        <label>ASEIA</label>
+        <icon type="theme">folder</icon>
+        <statustip>ASEIA Introspection GUIs</statustip>
+      </group>
+      <label>ASEIA Channels</label>
+      <icon type="theme">system-help</icon>
+      <statustip>GUI to display established ASEIA channels</statustip>
+    </qtgui>
+  </class>
+</library>
