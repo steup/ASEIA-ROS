@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(aseia REQUIRED)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++11 -Wall) #-Wextra)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -102,7 +102,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDE_DIRS})
 
 ## Declare a cpp executable
 # add_executable(aseia_base_node src/aseia_base_node.cpp)
-add_executable(manager src/manager.cpp)
+add_executable(manager src/manager_new.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
