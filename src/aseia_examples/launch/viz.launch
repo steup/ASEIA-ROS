@@ -1,0 +1,3 @@
+<launch>
+  <node name="Introspection" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find aseia_examples)/common/example.perspective"/>
+</launch>
