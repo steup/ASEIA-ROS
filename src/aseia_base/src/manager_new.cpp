@@ -9,6 +9,7 @@
 #include <MetaFactory.h>
 #include <FormatID.h>
 #include <EventID.h>
+#include <IO.h>
 
 #include <sstream>
 #include <string>
@@ -21,7 +22,7 @@ std::string topic(EventID eID, FormatID fID) {
 	os << "/sensors/" << eID << "/" << fID;
 	return os.str();
 }
- 
+
 std::string topic(const EventType& eT) { return topic(eT, eT); }
 
 /*bool topic(const std::string& s, EventID& eID, FormatID& fID) {
@@ -67,7 +68,8 @@ class ChannelManager {
 			EventType eT;
 			DeSerializer<decltype(eTPtr->data.begin())> d(eTPtr->data.begin(), eTPtr->data.end());
 			d >> eT;
-
+      ROS_INFO_STREAM("Got new " << (eTPtr->type==aseia_base::EventType::PUBLISHER?"Publisher":"Subscriber") <<
+                      " with EventType " << eT << "on base topic " << eTPtr->topic);
 		}
 		ChannelManager() {
 			ros::NodeHandle n;
