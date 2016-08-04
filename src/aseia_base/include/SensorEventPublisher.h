@@ -19,6 +19,7 @@ template<typename SensorEvent>
 class SensorEventPublisher {
   private: 
     ros::Publisher        mPub; 
+    ros::Publisher        mTypePub; 
     
     constexpr std::string prefix() { return "/sensors"; }
     constexpr std::string managementTopic() { return prefix()+"/management"; }

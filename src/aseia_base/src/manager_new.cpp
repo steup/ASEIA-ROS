@@ -60,6 +60,19 @@ class RosChannel : public Channel {
 };
 
 class ChannelManager {
+	private:
+		ros::Subscriber mSub;
+	public:
+		void handleNode(aseia_base::EventTypeConstPtr eTPtr) {
+			EventType eT;
+			DeSerializer<decltype(eTPtr->data.begin())> d(eTPtr->data.begin(), eTPtr->data.end());
+			d >> eT;
+
+		}
+		ChannelManager() {
+			ros::NodeHandle n;
+			mSub = n.subscribe("/sensors/management", 1, &ChannelManager::handleNode, this);
+		}
 };
 
 int main(int argc, char** argv){
