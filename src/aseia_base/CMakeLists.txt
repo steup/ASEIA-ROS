@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(aseia REQUIRED)
 
-add_definitions(-std=c++11 -Wall) #-Wextra)
+add_definitions(-std=c++11 -Wall -g) #-Wextra)
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -52,11 +52,11 @@ add_definitions(-std=c++11 -Wall) #-Wextra)
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+ add_service_files(
+   FILES
+   Publishers.srv
 #   Service2.srv
-# )
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
