@@ -3,7 +3,11 @@
 
 #include <aseia_base/SensorEvent.h>
 #include <aseia_base/EventType.h>
+#include <aseia_base/Publishers.h>
 
+#include <Transformation.h>
+#include <KnowledgeBase.h>
+#include <AbstractRegistry.h>
 #include <Channel.h>
 #include <MetaEvent.h>
 #include <MetaFactory.h>
@@ -44,6 +48,8 @@ class RosChannel : public Channel {
 				handleEvent(e);
 		}
 
+    RosChannel() = default;
+
 		RosChannel(TransPtr&& trans) : Channel(std::move(trans)) {
 			ros::NodeHandle n;
 			mPub =  n.advertise<aseia_base::SensorEvent>(topic(trans->out()), 1);
@@ -51,6 +57,8 @@ class RosChannel : public Channel {
 				mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(*in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
 			}
 		}
+
+    RosChannel(RosChannel&& movee) : Channel(std::move(movee)), mPub(std::move(movee.mPub)), mSubs(std::move(movee.mSubs)) {}
 
 		virtual void publishEvent(const MetaEvent& e) const {
 			aseia_base::SensorEvent sE;
@@ -62,18 +70,43 @@ class RosChannel : public Channel {
 
 class ChannelManager {
 	private:
+    using PublisherRegistry = AbstractRegistry<std::pair<EventType, uint64_t>>;
+    using ChannelRegistry = std::unordered_map<uint64_t, RosChannel>;
 		ros::Subscriber mSub;
+    ros::ServiceServer mPubSrv;
+    PublisherRegistry mPubs;
+    ChannelRegistry mChannels;
 	public:
+    bool providePublishers(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
+      std::ostringstream os;
+      for(const auto& pair : mPubs)
+        os << topic(pair.first) << "(" << pair.second << "): " << pair.first;
+      res.publishers = os.str();
+      return true;
+    }
+
 		void handleNode(aseia_base::EventTypeConstPtr eTPtr) {
 			EventType eT;
 			DeSerializer<decltype(eTPtr->data.begin())> d(eTPtr->data.begin(), eTPtr->data.end());
 			d >> eT;
       ROS_INFO_STREAM("Got new " << (eTPtr->type==aseia_base::EventType::PUBLISHER?"Publisher":"Subscriber") <<
                       " with EventType " << eT << "on base topic " << eTPtr->topic);
+      if(eTPtr->type == aseia_base::EventType::PUBLISHER)
+        mPubs.registerType(eT, std::make_pair(eT, eTPtr->id));
+      else {
+        std::list<const EventType*> inL;
+        for(const auto& pair : mPubs)
+          inL.push_back(&pair.first);
+        for(Transformation::TransPtr p : TransformGenerator(eT, inL)) {
+          mChannels.emplace(eTPtr->id, std::move(p));
+          ROS_INFO_STREAM("Established Channel" << mChannels[eTPtr->id]);
+        }
+      }
 		}
 		ChannelManager() {
 			ros::NodeHandle n;
 			mSub = n.subscribe("/sensors/management", 1, &ChannelManager::handleNode, this);
+      mPubSrv = n.advertiseService("/sensors/publishers", &ChannelManager::providePublishers, this);
 		}
 };
 
