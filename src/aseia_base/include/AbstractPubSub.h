@@ -11,21 +11,23 @@
 #include <FormatID.h>
 #include <EventID.h>
 
+#include <functional>
 #include <string>
 #include <sstream>
 
 template<typename Event>
 class AbstractPubSub {
-  private:
+  protected:
     ros::Publisher        mTypePub;
     ros::Timer            mTimer;
     aseia_base::EventType mTypeMsg;
-  protected:
     enum class Type {
       publisher,
       subscriber
     };
+    uint64_t              mId;
   public:
+
     constexpr std::string prefix() {
       return "/sensors";
     }
@@ -48,9 +50,12 @@ class AbstractPubSub {
       return os.str();
     }
 
+    uint64_t nodeId() const { return mId; }
+
   protected:
     AbstractPubSub(Type t, ros::Duration timeout = ros::Duration(60)) {
 			std::ostringstream os;
+      mId = std::hash<std::string>()(ros::this_node::getName());
 
 			if(t == Type::publisher)
         mTypeMsg.type = aseia_base::EventType::PUBLISHER;
@@ -61,6 +66,7 @@ class AbstractPubSub {
       EventType eType = (EventType)e;
 
 			mTypeMsg.topic = baseTopic();
+      mTypeMsg.id = mId;
 
       mTypeMsg.data.resize(eType.size());
       Serializer<decltype(mTypeMsg.data.begin())> s(mTypeMsg.data.begin());

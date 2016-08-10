@@ -1,5 +1,6 @@
 Header header
 string topic
+uint64 id
 uint8  type
 uint8[] data
 

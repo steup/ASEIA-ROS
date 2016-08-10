@@ -6,6 +6,7 @@
 #include <ros/node_handle.h>
 
 #include <aseia_base/SensorEvent.h>
+#include <ID.h>
 
 template<typename SensorEvent>
 class SensorEventPublisher : public AbstractPubSub<SensorEvent>{
@@ -19,7 +20,7 @@ class SensorEventPublisher : public AbstractPubSub<SensorEvent>{
         mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(this->topic(), 1);
     }
 
-    void publish(const SensorEvent& e) {
+    void publish(SensorEvent& e) {
       aseia_base::SensorEvent buffer;
       buffer.event.resize(SensorEvent::size());
       Serializer<std::vector<uint8_t>::iterator> s(buffer.event.begin());
