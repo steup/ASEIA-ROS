@@ -16,7 +16,7 @@ struct EventPub {
   {
     e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} }, { {0,0} } };
     e.attribute(id::attribute::Time())        = { { {(int64_t)ros::Time::now().toSec(), 0} } };
-    e.attribute(id::attribute::PublisherID()) = { { {0} } };
+    e.attribute(id::attribute::PublisherID()) = { { {pub.nodeId()} } };
   }
 
   void run(const ros::TimerEvent& msg){
