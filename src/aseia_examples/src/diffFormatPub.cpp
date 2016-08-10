@@ -6,8 +6,8 @@
 #include <ID.h>
 
 struct EventConfig : public BaseConfig {
-  using PositionValueType = Value<double, 2>;
-	using TimeValueType = Value<double, 1, 1, false>;
+  using PositionScale = std::ratio<1, 1000>;
+	using TimeScale = std::ratio<1000>;
 };
 
 
@@ -20,9 +20,9 @@ struct EventPub {
   EventPub()
     : t(ros::NodeHandle().createTimer(ros::Duration(1.0), &EventPub::run, this))
   {
-    e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} } };
-    e.attribute(id::attribute::Time())        = { { {ros::Time::now().toSec()} } };
-    e.attribute(id::attribute::PublisherID()) = { { {0} } };
+    e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} }, { {0, 0} } };
+    e.attribute(id::attribute::Time())        = { { {(int64_t)ros::Time::now().toSec()/1000, 0} } };
+    e.attribute(id::attribute::PublisherID()) = { { {pub.nodeId()} } };
   }
 
   void run(const ros::TimerEvent& msg){
