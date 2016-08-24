@@ -58,7 +58,7 @@ class RosChannel : public Channel {
 			}
 		}
 
-    RosChannel(RosChannel&& movee) : Channel(std::move(movee)), mPub(std::move(movee.mPub)), mSubs(std::move(movee.mSubs)) {}
+   // RosChannel(RosChannel&& movee) : Channel(std::move(movee)), mPub(std::move(movee.mPub)), mSubs(std::move(movee.mSubs)) {}
 
 		virtual void publishEvent(const MetaEvent& e) const {
 			aseia_base::SensorEvent sE;
@@ -70,7 +70,7 @@ class RosChannel : public Channel {
 
 class ChannelManager {
 	private:
-    using PublisherRegistry = AbstractRegistry<std::pair<EventType, uint64_t>>;
+    using PublisherRegistry = AbstractRegistry<EventType>;
     using ChannelRegistry = std::unordered_map<uint64_t, RosChannel>;
 		ros::Subscriber mSub;
     ros::ServiceServer mPubSrv;
@@ -79,8 +79,8 @@ class ChannelManager {
 	public:
     bool providePublishers(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
       std::ostringstream os;
-      for(const auto& pair : mPubs)
-        os << topic(pair.first) << "(" << pair.second << "): " << pair.first;
+      for(const EventType& eT : mPubs)
+        os << topic(eT) << ":" << std::endl << eT;
       res.publishers = os.str();
       return true;
     }
@@ -92,14 +92,14 @@ class ChannelManager {
       ROS_INFO_STREAM("Got new " << (eTPtr->type==aseia_base::EventType::PUBLISHER?"Publisher":"Subscriber") <<
                       " with EventType " << eT << "on base topic " << eTPtr->topic);
       if(eTPtr->type == aseia_base::EventType::PUBLISHER)
-        mPubs.registerType(eT, std::make_pair(eT, eTPtr->id));
+        mPubs.registerType(eT, eT);
       else {
-        std::list<const EventType*> inL;
-        for(const auto& pair : mPubs)
-          inL.push_back(&pair.first);
-        for(Transformation::TransPtr p : TransformGenerator(eT, inL)) {
-          mChannels.emplace(eTPtr->id, std::move(p));
-          ROS_INFO_STREAM("Established Channel" << mChannels[eTPtr->id]);
+        for(Transformation::TransPtr p : TransformGenerator(eT, mPubs)) {
+					if(p) {
+          	mChannels.emplace(eTPtr->id, std::move(p));
+          	ROS_INFO_STREAM("Established Channel" << mChannels[eTPtr->id]);
+					} else
+						ROS_ERROR_STREAM("Invalid Channel, Transformer is NULL");
         }
       }
 		}
