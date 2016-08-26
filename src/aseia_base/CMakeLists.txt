@@ -102,7 +102,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDE_DIRS})
 
 ## Declare a cpp executable
 # add_executable(aseia_base_node src/aseia_base_node.cpp)
-add_executable(manager src/manager_new.cpp)
+add_executable(manager src/manager.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
