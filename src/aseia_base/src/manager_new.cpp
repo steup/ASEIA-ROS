@@ -52,8 +52,8 @@ class RosChannel : public Channel {
 
 		RosChannel(TransPtr&& trans) : Channel(std::move(trans)) {
 			ros::NodeHandle n;
-			mPub =  n.advertise<aseia_base::SensorEvent>(topic(trans->out()), 1);
-			for(const EventType* in : trans->in()) {
+			mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
+			for(const EventType* in : mTrans->in()) {
 				mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(*in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
 			}
 		}
