@@ -5,8 +5,13 @@
 #include <BaseEvent.h>
 #include <ID.h>
 
+struct EventConfig : public BaseConfig {
+  using TimeScale = std::ratio<1000>;
+  using TimeValueType = Value<uint32_t, 1>;
+};
+
 struct EventPub {
-  using ThisEvent=BaseEvent<>;
+  using ThisEvent=BaseEvent<EventConfig>;
   SensorEventPublisher<ThisEvent> pub;
   ThisEvent e;
   ros::Timer t;
@@ -15,7 +20,7 @@ struct EventPub {
     : t(ros::NodeHandle().createTimer(ros::Duration(1.0), &EventPub::run, this))
   {
     e.attribute(id::attribute::Position())    = { { {0,0} }, { {0,0} }, { {0,0} } };
-    e.attribute(id::attribute::Time())        = { { {(int64_t)ros::Time::now().toSec(), 0} } };
+    e.attribute(id::attribute::Time())        = { { {(uint32_t)ros::Time::now().toSec(), 0} } };
     e.attribute(id::attribute::PublisherID()) = { { {pub.nodeId()} } };
   }
 
