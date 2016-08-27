@@ -42,9 +42,10 @@ class RosChannel : public Channel {
 
 	public:
 		void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType* eTPtr) {
-				MetaEvent  e=MetaFactory::instance().create(*eTPtr);
+				MetaEvent  e(*eTPtr);
 				DeSerializer<decltype(msgPtr->event.begin())> d(msgPtr->event.begin(), msgPtr->event.end());
 				d >> e;
+        ROS_INFO_STREAM("Got Event to transform: " << e);
 				handleEvent(e);
 		}
 
@@ -61,6 +62,7 @@ class RosChannel : public Channel {
    // RosChannel(RosChannel&& movee) : Channel(std::move(movee)), mPub(std::move(movee.mPub)), mSubs(std::move(movee.mSubs)) {}
 
 		virtual void publishEvent(const MetaEvent& e) const {
+      ROS_INFO_STREAM("Sending transformed Event: " << e);
 			aseia_base::SensorEvent sE;
 			Serializer<decltype(back_inserter(sE.event))> s(back_inserter(sE.event));
 			s << e;
