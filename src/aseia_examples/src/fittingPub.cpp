@@ -6,7 +6,6 @@
 #include <ID.h>
 
 struct EventConfig : public BaseConfig {
-  using TimeScale = std::ratio<1000>;
   using TimeValueType = Value<uint32_t, 1>;
 };
 
