@@ -73,15 +73,17 @@ class AbstractPubSub {
       s << eType;
       ros::NodeHandle n;
 			mTypePub = n.advertise<aseia_base::EventType>(managementTopic(), 1, true);
+      mTimer = n.createTimer(timeout, &AbstractPubSub::publishType, this);
 
       ROS_INFO_STREAM("Created " << (t==Type::publisher?"Publisher":"Subscriber") <<
                       " with EventType " << eType << " on Topic : " << topic());
-      publishType();
+      ros::TimerEvent time;
+      publishType(time);
     }
 
   public:
 
-    void publishType() const {
+    void publishType(const ros::TimerEvent& e) const {
       ROS_DEBUG_STREAM("Publishing EventType");
       mTypePub.publish(mTypeMsg);
     }
