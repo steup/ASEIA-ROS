@@ -1,6 +1,8 @@
 <launch>
+  <arg name="debug" default="0"/>
   <node name="AseiaFittingPub"    pkg="aseia_examples" type="fittingPub"    />
   <node name="AseiaDiffFormatPub" pkg="aseia_examples" type="diffFormatPub" />
   <node name="AseiaExampleSub"    pkg="aseia_examples" type="exampleSub"    />
-  <node name="AseiaTypeCoupler"   pkg="aseia_base"     type="manager"       />
+  <node name="AseiaManager"   pkg="aseia_base"     type="manager"       unless="$(arg debug)"/>
+  <!--node name="AseiaManagerDebug"   pkg="aseia_base"     type="manager"       if="$(arg debug)" launch-prefix="gdbserver localhost:1234 "/-->
 </launch>
