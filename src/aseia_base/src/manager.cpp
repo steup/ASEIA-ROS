@@ -20,7 +20,6 @@
 #include <list>
 #include <iterator>
 
-
 std::string topic(EventID eID, FormatID fID) {
   std::ostringstream os;
   os << "/sensors/" << eID << "/" << fID;
@@ -77,17 +76,16 @@ class RosChannel : public Channel {
 
 class ChannelManager {
   private:
-    using PublisherRegistry = AbstractRegistry<EventType>;
     using ChannelRegistry = AbstractRegistry<RosChannel>;
     ros::Subscriber mSub;
     ros::ServiceServer mPubSrv;
-    PublisherRegistry mPubs;
     ChannelRegistry mChannels;
   public:
     bool providePublishers(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
       std::ostringstream os;
-      for(const EventType& eT : mPubs)
-        os << topic(eT) << ":" << std::endl << eT;
+      os << "Not yet implemented";
+      //for(const EventType& eT : mPubs)
+      //  os << topic(eT) << ":" << std::endl << eT;
       res.publishers = os.str();
       return true;
     }
@@ -99,29 +97,25 @@ class ChannelManager {
       //ROS_INFO_STREAM("Got new " << (eTPtr->type==aseia_base::EventType::PUBLISHER?"Publisher":"Subscriber") <<
       //                " with EventType " << eT << "on base topic " << eTPtr->topic);
       if(eTPtr->type == aseia_base::EventType::PUBLISHER) {
-        if(!mPubs.contains(eT))
-          ROS_DEBUG_STREAM("Registering new Publisher with EventType: " << eT);
-          mPubs.registerType(eT, eT);
+          ROS_DEBUG_STREAM("Publisher: " << eT);
+          KnowledgeBase::registerEventType(eT);
       } else {
         //TODO: pass Transformation and EventLists do discard existing transformations
-        for(Transformation::TransPtr p : TransformGenerator(eT, mPubs)) {
-          if(p){
-            ROS_DEBUG_STREAM("Potential Transform: " << *p);
-            auto comp = [&p](const RosChannel& c){return c.trans() && *p==*c.trans();};
-            if(!count_if(mChannels.find(eT).begin(), mChannels.find(eT).end(), comp)) {
-              RosChannel c(std::move(p));
+        for(const ConfiguredTransformation& t : KnowledgeBase::findTransforms(eT)) {
+            ROS_DEBUG_STREAM("Potential Transform: " << t);
+            auto comp = [&t](const RosChannel& c){return c.trans() && t==*c.trans();};
+            if(none_of(mChannels.find(eT).begin(), mChannels.find(eT).end(), comp)) {
+              RosChannel c(t.create());
               ROS_INFO_STREAM("Established Channel" << c);
               mChannels.registerType(eT, std::move(c));
             } else
               ROS_DEBUG_STREAM("Channel already existing");
-          } else
-              ROS_ERROR_STREAM("Invalid Channel, Transformer is NULL");
         }
       }
     }
     ChannelManager() {
       ros::NodeHandle n;
-      mSub = n.subscribe("/sensors/management", 1, &ChannelManager::handleNode, this);
+      mSub = n.subscribe("/sensors/management", 100, &ChannelManager::handleNode, this);
       mPubSrv = n.advertiseService("/sensors/publishers", &ChannelManager::providePublishers, this);
     }
 };
