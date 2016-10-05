@@ -1,0 +1,5 @@
+<launch>
+	<arg name="debug" default="false"/>
+  <node name="AseiaManager" pkg="aseia_base" type="manager" unless="$(arg debug)"/>
+  <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(arg debug)" launch-prefix="gdbserver localhost:1234 "/>
+</launch>
