@@ -32,7 +32,7 @@ if __name__=="__main__":
         os.symlink(plugins[0], vrepPath+"/"+plugin)
     except:
         pass
-    os.environ["LD_LIBRARY_PATH"]=os.environ["LD_LIBRARY_PATH"]+vrepPath
+    os.environ["LD_LIBRARY_PATH"]=vrepPath+":"+os.environ["LD_LIBRARY_PATH"]
     rospy.loginfo("Starting V-REP(%s) with scene %s"%(vrepPath+'/vrep', scene))
     rospy.logdebug("Environment:\n%s"%os.environ)
     subprocess.call([vrepPath+"/vrep", scene])
