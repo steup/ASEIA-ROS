@@ -1,0 +1,12 @@
+# Blender MTL File: 'hill.blend'
+# Material Count: 1
+
+newmtl Material.004
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd /home/ssj5kc/Downloads/palemoon/seamless_sand___d648_by_agf81-d5loea7.jpg
