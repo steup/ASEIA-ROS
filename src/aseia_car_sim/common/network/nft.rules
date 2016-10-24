@@ -1,0 +1,6 @@
+table inet ros {
+	chain lossy {
+		type filter hook output priority 0; policy accept;
+		cgroup 65538 mark set 0x00000001 counter packets 6002522 bytes 49460748610
+	}
+}

@@ -1,0 +1,2 @@
+class htb 1:1 root leaf 3: prio 0 rate 10Gbit ceil 10Gbit burst 0b cburst 0b 
+class htb 1:2 root leaf 2: prio 0 rate 1Mbit ceil 1Mbit burst 1600b cburst 1600b 

@@ -1,0 +1,4 @@
+filter parent 1: protocol ip pref 1 fw 
+filter parent 1: protocol ip pref 1 fw handle 0x1 classid 1:2 
+filter parent 1: protocol ipv6 pref 2 fw 
+filter parent 1: protocol ipv6 pref 2 fw handle 0x1 classid 1:2 
