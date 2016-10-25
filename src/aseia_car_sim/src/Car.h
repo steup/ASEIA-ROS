@@ -4,6 +4,7 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <string>
 
 namespace car {
 
@@ -21,26 +22,29 @@ namespace car {
         licensePlate,//<< 16 char license plate
       };
     private:
-      const Type mType;
-      const std::uin64_t time;
+      const Type mType = Type::invalid;
+      const std::uint64_t mTime = 0;
     public:
-      Data(Type type) : mType(type) {}
+      Data() = default;
+      Data(Type type, uint64_t time) : mType(type), mTime(time) {}
       Type type() const { return mType; }
-      bool operator<(const Data& b) const { return time < b.time; }
-  };
-
-
-  class Controller {
-    public:
-      virtual void reference(const Data& ref);
-      virtual const Reference& reference(Data::Type type) const;
-      virtual Commands operator()(const DataVec& v);
+      bool operator<(const Data& b) const { return mTime < b.mTime; }
   };
 
   using DataPtr       = std::unique_ptr< Data >;
-  using DataVec       = std::vector< DataPtr >
+  using DataVec       = std::vector< DataPtr >;
   using DataMap       = std::map< Data::Type, DataVec >;
-  using ControllerPtr = std::unique_ptr< Controller >
+
+  class Controller {
+    public:
+      virtual void reference(const Data& ref) =0;
+      virtual const Data& reference(Data::Type type) const =0;
+      virtual void operator()(DataMap& v) =0;
+  };
+
+  using ControllerPtr = std::unique_ptr< Controller >;
+
+  ControllerPtr ctrlFactory(const std::string& name);
 
   class Car {
     private:
@@ -50,11 +54,11 @@ namespace car {
       ControlVec mControl;
     public:
       Car() : mAlive(true) {}
-      void addController(ControllerPtr control);
+      void addController(ControllerPtr control) { mControl.emplace_back(std::move(control)); }
       void feed(const Data& data);
       void update();
-      const Data& speed() const;
-      const Data& angle() const;
+      Data speed() const;
+      Data angle() const;
       bool alive() const { return mAlive; }
   };
 }

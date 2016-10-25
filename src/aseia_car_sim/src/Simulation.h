@@ -3,12 +3,16 @@
 #include "Car.h"
 
 #include <vector>
+#include <cstdint>
 
-class Simulation {
-  private:
-    using CarVec = std::vector<Car>;
-    Cars mCars;
-  public:
-    Simulation();
-    void run();
-};
+namespace car {
+  class Simulation {
+    private:
+      using Cars = std::vector<Car>;
+      Cars mCars;
+    public:
+      using CtrlNames = std::vector<std::string>;
+      Simulation(std::size_t carNum, const CtrlNames& ctrlNames);
+      void run();
+  };
+}
