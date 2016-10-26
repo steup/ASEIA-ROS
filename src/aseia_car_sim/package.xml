@@ -42,5 +42,7 @@
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>aseia_base</exec_depend>
   <exec_depend>vrep</exec_depend>
+  <depend>vrep_common</depend>
+  <depend>vrep_plugin</depend>
 
 </package>

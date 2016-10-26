@@ -3,7 +3,8 @@ project(aseia_car_sim)
 
 add_definitions(-std=c++11 -Wall)
 
-find_package(catkin REQUIRED COMPONENTS roscpp aseia_base)
+find_package(catkin REQUIRED COMPONENTS roscpp aseia_base vrep_plugin
+  vrep_common)
 
 catkin_package()
 
