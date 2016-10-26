@@ -1,14 +1,22 @@
 #include "Simulation.h"
 
 #include <ros/ros.h>
+#include <boost/algorithm/string.hpp>
 #include <string>
 
 using namespace car;
+using namespace std;
+using namespace boost;
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "CarSim");
+  ros::NodeHandle nh("~");
+  string ctrlNameParam;
+  int carNum = 0;
+  nh.getParam("controllers", ctrlNameParam);
+  nh.getParam("carNum", carNum);
   Simulation::CtrlNames ctrlNames;
-  std::size_t carNum = 0;
+  split(ctrlNames, ctrlNameParam, is_any_of(" ,"), token_compress_on);
   Simulation sim(carNum, ctrlNames);
   sim.run();
 }

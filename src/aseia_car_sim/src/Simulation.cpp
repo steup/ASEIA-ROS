@@ -3,9 +3,7 @@
 #include <ros/ros.h>
 
 #include <vrep_common/simRosStartSimulation.h>
-#include <vrep_common/simRosGetObjectHandle.h>
-#include <vrep_common/simRosEnablePublisher.h>
-#include <v_repConst.h>
+#include <vrep_common/simRosAddStatusbarMessage.h>
 
 
 namespace car {
@@ -15,33 +13,27 @@ namespace car {
 
   Simulation::Simulation(size_t carNum, const CtrlNames& ctrlNames) {
     ros::NodeHandle nh;
-    {
-      simRosStartSimulation srv;
-      ros::ServiceClient client;
-      do {
-        client = nh.serviceClient<simRosStartSimulation>("/vrep/simRosStartSimulation");
-      }while(!client.exists());
-      client.call(srv);
+    ros::ServiceClient client;
+    do {
+      client = nh.serviceClient< simRosAddStatusbarMessage >( "/vrep/simRosAddStatusbarMessage");
+    }while(!client.exists());
+    simRosAddStatusbarMessage msg;
+    msg.request.message = "Simulation Node starting";
+    client.call(msg);
+    for( size_t i = 0; i < carNum; i++ ) {
+      mCars.emplace_back(i);
+      for(const string& ctrl : ctrlNames) {
+        ControllerPtr&& ctrlPtr = ctrlFactory(ctrl);
+        if( ctrlPtr )
+          mCars.back().addController(std::move(ctrlPtr));
+      }
     }
-    int handle;
-    {
-      simRosGetObjectHandle srv;
-      srv.request.objectName = "Car";
-      nh.serviceClient<simRosStartSimulation>("/vrep/simRosStartSimulation").call(srv);
-      handle = srv.response.handle;
-    }
-    simRosEnablePublisher srv;
-    srv.request.topicName="/car/0";
-    srv.request.queueSize=1;
-    srv.request.streamCmd = simros_strmcmd_get_object_pose;
-    srv.request.auxInt1 = handle;
-    srv.request.auxInt2 = -1;
-    srv.request.auxString = "/car/0";
-    nh.serviceClient<simRosEnablePublisher>("/vrep/simRosEnablePublisher").call(srv);
   }
 
   void Simulation::run() {
-
+    ros::NodeHandle nh;
+    simRosStartSimulation simStart;
+    nh.serviceClient< simRosStartSimulation >( "/vrep/simRosStartSimulation" ).call(simStart);
   }
 
 }

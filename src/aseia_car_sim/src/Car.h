@@ -38,7 +38,7 @@ namespace car {
   class Controller {
     public:
       virtual void reference(const Data& ref) =0;
-      virtual const Data& reference(Data::Type type) const =0;
+      virtual const Data& reference() const =0;
       virtual void operator()(DataMap& v) =0;
   };
 
@@ -52,13 +52,17 @@ namespace car {
       bool mAlive;
       using ControlVec = std::vector< ControllerPtr >;
       ControlVec mControl;
+      const size_t mIndex;
+      std::vector<std::string> mPubs;
     public:
-      Car() : mAlive(true) {}
+      Car(std::size_t i);
       void addController(ControllerPtr control) { mControl.emplace_back(std::move(control)); }
       void feed(const Data& data);
       void update();
       Data speed() const;
       Data angle() const;
       bool alive() const { return mAlive; }
+      std::string name() const;
+      std::string frame() const;
   };
 }
