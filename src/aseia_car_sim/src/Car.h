@@ -12,14 +12,15 @@ namespace car {
     public:
       enum class Type {
         invalid,     //<< no such data
+        in = 1,
         position,    //<< GPS
-        speed,       //<< km/h
-        angle,       //<< rad
         lane,        //<< lane on road (-2, -1, | 1, 2, 3 )
         road,        //<< road ID
         offset,      //<< offset on road from start >0
         roadScan,    //<< 256 depth data of road
         licensePlate,//<< 16 char license plate
+        out = 100,
+        command,       //<< rad and km/h
       };
     private:
       const Type mType = Type::invalid;
@@ -28,12 +29,14 @@ namespace car {
       Data() = default;
       Data(Type type, uint64_t time) : mType(type), mTime(time) {}
       Type type() const { return mType; }
+      virtual void update() {}
       bool operator<(const Data& b) const { return mTime < b.mTime; }
   };
 
   using DataPtr       = std::unique_ptr< Data >;
   using DataVec       = std::vector< DataPtr >;
-  using DataMap       = std::map< Data::Type, DataVec >;
+  using DataMap       = std::map< Data::Type, DataPtr >;
+  using DataElem      = DataMap::value_type;
 
   class Controller {
     public:
@@ -57,7 +60,6 @@ namespace car {
     public:
       Car(std::size_t i);
       void addController(ControllerPtr control) { mControl.emplace_back(std::move(control)); }
-      void feed(const Data& data);
       void update();
       Data speed() const;
       Data angle() const;

@@ -4,6 +4,8 @@
 #include <boost/algorithm/string.hpp>
 #include <string>
 
+#include <signal.h>
+
 using namespace car;
 using namespace std;
 using namespace boost;
@@ -18,5 +20,8 @@ int main(int argc, char** argv) {
   Simulation::CtrlNames ctrlNames;
   split(ctrlNames, ctrlNameParam, is_any_of(" ,"), token_compress_on);
   Simulation sim(carNum, ctrlNames);
-  sim.run();
+  while(ros::ok()){
+    ros::spinOnce();
+    sim.run();
+  }
 }

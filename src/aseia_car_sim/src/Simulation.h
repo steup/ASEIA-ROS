@@ -13,6 +13,7 @@ namespace car {
     public:
       using CtrlNames = std::vector<std::string>;
       Simulation(std::size_t carNum, const CtrlNames& ctrlNames);
+      ~Simulation();
       void run();
   };
 }
