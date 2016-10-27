@@ -1,7 +1,7 @@
 <launch>
     <arg name="VREPScene" default=""/>
     <arg name="VREPPath"/>
-  <node name="V_REP" type="vrep" pkg="vrep">
+  <node name="V_REP" type="vrep" pkg="vrep" output="screen">
     <param name="path" value="$(arg VREPPath)"/>
     <param name="scene" value="$(arg VREPScene)"/>
   </node>
