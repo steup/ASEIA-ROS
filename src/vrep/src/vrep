@@ -2,6 +2,13 @@
 
 import rospy, os, subprocess
 
+vrep = None
+
+def quit():
+    if vrep:
+        vrep.terminate()
+        vrep.wait()
+
 if __name__=="__main__":
   rospy.init_node('V_REP')
   vrepPath = os.path.expanduser(rospy.get_param('~path'))
@@ -9,7 +16,10 @@ if __name__=="__main__":
   if( not os.access(vrep, os.F_OK or os.X_OK)):
     rospy.logfatal("V-REP executable missing or not executable: %s"%vrep)
   else:
-    scene = rospy.get_param('~scene')
+    try:
+        scene = rospy.get_param('~scene')
+    except:
+        scene= ""
     try:
         plugin = rospy.get_param('~plugin')
     except KeyError:
@@ -35,4 +45,6 @@ if __name__=="__main__":
     os.environ["LD_LIBRARY_PATH"]=vrepPath+":"+os.environ["LD_LIBRARY_PATH"]
     rospy.loginfo("Starting V-REP(%s) with scene %s"%(vrepPath+'/vrep', scene))
     rospy.logdebug("Environment:\n%s"%os.environ)
-    subprocess.call([vrepPath+"/vrep", scene])
+    vrep = subprocess.Popen([vrepPath+"/vrep", scene])
+    rospy.on_shutdown(quit)
+    rospy.spin()
