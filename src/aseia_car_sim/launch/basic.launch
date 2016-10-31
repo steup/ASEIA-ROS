@@ -1,10 +1,25 @@
 <launch>
 
-<include file="$(find aseia_base)/launch/manager.launch"/>
-<include file="$(find vrep)/launch/vrep.launch">
-  <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/basic.ttt"/>
-  <arg name="VREPPath" value="/home/ssj5kc/software/vrep"/>
-</include>
-<node name="CarSim" pkg="aseia_car_sim" type="simulation"/>
+  <include file="$(find aseia_base)/launch/manager.launch"/>
+  <include file="$(find vrep)/launch/vrep.launch">
+    <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/basic.ttt"/>
+    <arg name="VREPPath" value="/home/ssj5kc/software/vrep"/>
+  </include>
+  <node name="sim" pkg="aseia_car_sim" type="simulation"/>
+  <node name="car0" pkg="aseia_car_sim" type="car" >
+    <param name="name"                value="Car"/>
+    <param name="index"               value="0"/>
+    <param name="handle/laneScanner"  value="RoadSensor"/>
+    <param name="handle/lSteer"       value="SteeringLeft"/>
+    <param name="handle/rSteer"       value="SteeringRight"/>
+    <param name="handle/lMotor"       value="MotorLeft"/>
+    <param name="handle/rMotor"       value="MotorRight"/>
+    <param name="handle/FreeAxisLeft" value="blAxis"/>
+    <param name="handle/Car"          value="car"/>
+    <param name="controllers"         value="lane,cruise"/>
+    <param name="sensors"             value="lanePos,command"/>
+    <param name="ref/lane"            value="0.0"/>
+    <param name="ref/speed"           value="10.0"/>
+  </node>
 
 </launch>
