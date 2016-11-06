@@ -140,9 +140,11 @@ namespace car {
       void update() {
         ros::NodeHandle nh;
         for(CarMap::value_type& car : mCars)
-          car.second.trigger();
+          if(car.second)
+            car.second.trigger();
         for(CarMap::value_type& car : mCars)
-          car.second.wait();
+          if(car.second)
+            car.second.wait();
         if( !trigger(Trigger::step) )
           ROS_FATAL_STREAM("Advancing Simulation failed!");
       }
@@ -154,6 +156,7 @@ using namespace car;
 int main(int argc, char** argv) {
   ros::init(argc, argv, "simulation");
   ros::NodeHandle nh;
+  nh.setParam("simName", ros::this_node::getName());
   Simulation sim;
   while(ros::ok()) {
     sim.update();
