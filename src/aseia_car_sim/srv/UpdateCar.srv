@@ -1,7 +1,7 @@
 uint8 command
 
-uint8 trigger = 1
-uint8 wait    = 2
+uint8 TRIGGER = 1
+uint8 DONE    = 2
 ---
 bool done
 bool alive

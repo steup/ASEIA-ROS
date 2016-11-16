@@ -23,9 +23,7 @@ namespace car {
   static ros::ServiceClient handleSrv, poseSrv, depthSrv, jointPosSrv, jointVelSrv;
 
   static int getHandle(const string& objectName, int index = -1) {
-    static ros::ServiceClient srv;
-    while(!srv.exists())
-      srv = ros::NodeHandle().serviceClient< simRosGetObjectHandle >( "/vrep/simRosGetObjectHandle", true);
+    static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectHandle >( "/vrep/simRosGetObjectHandle", true);
     simRosGetObjectHandle handle;
     handle.request.objectName = objectName;
     if(index != -1)
@@ -40,9 +38,7 @@ namespace car {
   }
 
   static V3 getPosition(int handle, int reference) {
-    static ros::ServiceClient srv;
-    while(!srv.exists())
-      srv = ros::NodeHandle().serviceClient< simRosGetObjectPose >( "/vrep/simRosGetObjectPose", true);
+    static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectPose >( "/vrep/simRosGetObjectPose", true);
     simRosGetObjectPose pose;
     pose.request.handle = handle;
     pose.request.relativeToObjectHandle = reference;
@@ -56,9 +52,7 @@ namespace car {
   }
 
   static bool setAngle(int handle, float angle) {
-    static ros::ServiceClient srv;
-    while(!srv.exists())
-      srv = ros::NodeHandle().serviceClient< simRosSetJointTargetPosition >( "/vrep/simRosSetJointTargetPosition", true);
+    static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosSetJointTargetPosition >( "/vrep/simRosSetJointTargetPosition", true);
     simRosSetJointTargetPosition data;
     data.request.handle = handle;
     data.request.targetPosition = angle;
@@ -70,9 +64,7 @@ namespace car {
   }
 
   static bool setSpeed(int handle, float vel) {
-    static ros::ServiceClient srv;
-    while(!srv.exists())
-      srv = ros::NodeHandle().serviceClient< simRosSetJointTargetVelocity >( "/vrep/simRosSetJointTargetVelocity", true);
+    static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosSetJointTargetVelocity >( "/vrep/simRosSetJointTargetVelocity", true);
     simRosSetJointTargetVelocity data;
     data.request.handle = handle;
     data.request.targetVelocity = vel;
@@ -163,10 +155,7 @@ namespace car {
         if( !ros::param::get(path+"/handle", name) )
           ROS_ERROR_STREAM("No V-REP sensor name supplied as \"handle\" for lane sensor " << path);
         mScan.request.handle = getHandle(name, car.index());
-        ros::NodeHandle nh;
-        do {
-          srv = nh.serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
-        } while(!srv.exists());
+        srv = ros::NodeHandle().serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
         update();
       }
 

@@ -11,8 +11,9 @@
 
 #include <cmath>
 #include <atomic>
-#include <mutex>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace car {
 
@@ -26,9 +27,11 @@ namespace car {
       using DataElem = DataMap::value_type;
       DataMap mRef, mSensor, mAct;
       ControlVec mControl;
-      mutex mTrigger;
       thread mUpdateThread;
       ros::ServiceServer mUpdateSrv;
+      atomic<bool> mDone;
+      mutex mMutex;
+      condition_variable mCond;
 
     public:
 
@@ -100,7 +103,9 @@ namespace car {
       }
 
       void update() {
-        lock_guard<mutex> lock(mTrigger);
+        unique_lock<mutex> lock(mMutex);
+        mCond.wait(lock);
+        ROS_DEBUG_STREAM("Updating car " << name());
         if(mAlive) {
         for( DataElem& data : mSensor )
           if( data.second && data.second->isInput() )
@@ -118,15 +123,18 @@ namespace car {
             if( !data.second->update() )
               mAlive = false;
         }
+        mDone = true;
+        ROS_DEBUG_STREAM("Updating car " << name() << "done");
       }
 
       string name() const { return ros::this_node::getName(); }
 
       bool handleUpdate(UpdateCar::Request& req, UpdateCar::Response& res) {
         switch(req.command) {
-          case(UpdateCar::Request::trigger): mTrigger.unlock();
+          case(UpdateCar::Request::TRIGGER): mDone = false;
+                                             mCond.notify_one();
                                              break;
-          case(UpdateCar::Request::wait)   : mTrigger.lock();
+          case(UpdateCar::Request::DONE)   : res.done = mDone.load();
                                              break;
         }
         res.alive = mAlive;
@@ -134,24 +142,21 @@ namespace car {
       }
 
       CarImpl(std::size_t i, const std::string& simName)
-        : Car(i)
+        : Car(i),
+          mDone(false)
       {
         ros::NodeHandle nh;
-        mTrigger.lock();
         mUpdateThread=std::move(thread([this](){ while(ros::ok()) this->update(); }));
         mUpdateSrv = nh.advertiseService(name()+"/update", &CarImpl::handleUpdate, this);
         RegisterCar reg;
         reg.request.name=name();
-        ros::ServiceClient srv;
-        do {
-          srv=ros::NodeHandle().serviceClient<RegisterCar>(simName+"/registerCar");
-        }while(!srv.exists());
+        ros::ServiceClient srv = ros::NodeHandle().serviceClient<RegisterCar>(simName+"/registerCar");
+        srv.waitForExistence();
         if(! srv.call(reg) || !reg.response.result)
           ROS_FATAL_STREAM("Could not register car "<<name()<< " with simulation " << simName);
       }
 
       ~CarImpl() {
-        mTrigger.unlock();
         mUpdateThread.join();
       }
 

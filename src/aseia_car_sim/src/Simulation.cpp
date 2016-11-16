@@ -28,33 +28,41 @@ namespace car {
       CarProxy(const string& name)
         : mName(name)
       {
-        mState.response.alive = true;
-        srv = ros::NodeHandle().serviceClient<UpdateCar>(name+"/update");
+        reset();
       }
 
       operator bool() const { return mState.response.alive; }
 
       void trigger() {
         if(mState.response.alive) {
-          mState.request.command = mState.request.trigger;
+          ROS_DEBUG_STREAM("Triggering car " << mName);
+          mState.request.command = mState.request.TRIGGER;
           if( !srv.call(mState) ) {
             ROS_ERROR_STREAM("Error triggering car " << mName);
             mState.response.alive = false;
           }
+          ROS_DEBUG_STREAM("Triggering car " << mName << " done");
         }
+        ROS_DEBUG_STREAM("Car " << mName << " is " << (mState.response.alive?"":"not") << "alive");
       }
 
-      void wait() {
+      bool isDone() {
         if(mState.response.alive) {
-          mState.request.command = mState.request.wait;
+          ROS_DEBUG_STREAM("Waiting for car " << mName);
+          mState.request.command = mState.request.DONE;
           if( !srv.call(mState) ) {
             ROS_ERROR_STREAM("Error waiting for car " << mName);
             mState.response.alive = false;
           }
+          return mState.response.done;
+          ROS_DEBUG_STREAM("car " << mName << "is " << (mState.response.done?"":"not") << " done");
         }
+        ROS_DEBUG_STREAM("Car " << mName << " is " << (mState.response.alive?"":"not") << "alive");
+        return true;
       }
 
       void reset() {
+        srv = ros::NodeHandle().serviceClient<UpdateCar>(mName+"/update", true);
         mState.response.alive = true;
       }
   };
@@ -111,17 +119,15 @@ namespace car {
     public:
       Simulation() {
         ros::NodeHandle nh;
-        mRegSrv = nh.advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this);
-        ros::ServiceClient client;
-        do {
-          client = nh.serviceClient< simRosSynchronous >( "/vrep/simRosSynchronous");
-        }while(!client.exists());
+        ros::ServiceClient setSyncSrv = nh.serviceClient< simRosSynchronous >( "/vrep/simRosSynchronous");
+        setSyncSrv.waitForExistence();
+        mRegSrv   = nh.advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this);
         mStepSrv  = nh.serviceClient< simRosSynchronousTrigger >( "/vrep/simRosSynchronousTrigger", true);
         mStartSrv = nh.serviceClient< simRosStartSimulation    >( "/vrep/simRosStartSimulation"   , true);
         mStopSrv  = nh.serviceClient< simRosStopSimulation     >( "/vrep/simRosStopSimulation"    , true);
         simRosSynchronous sync;
         sync.request.enable = 1;
-        if(!client.call(sync)  || sync.response.result == -1)
+        if(! setSyncSrv.call(sync)  || sync.response.result == -1)
           ROS_FATAL_STREAM("Switching VREP to synchronous mode failed!");
         if( !trigger(Trigger::start) )
           ROS_FATAL_STREAM("Starting VREP simulation failed!");
@@ -142,9 +148,13 @@ namespace car {
         for(CarMap::value_type& car : mCars)
           if(car.second)
             car.second.trigger();
-        for(CarMap::value_type& car : mCars)
-          if(car.second)
-            car.second.wait();
+        bool done;
+        do {
+          done = true;
+          for(CarMap::value_type& car : mCars)
+            if(car.second)
+              done &=car.second.isDone();
+        }while(!done);
         if( !trigger(Trigger::step) )
           ROS_FATAL_STREAM("Advancing Simulation failed!");
       }
