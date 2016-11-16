@@ -1,56 +1,6 @@
 <launch>
-
   <include file="$(find aseia_base)/launch/manager.launch"/>
-  <include file="$(find vrep)/launch/vrep.launch">
-    <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/basic.ttt"/>
-    <arg name="VREPPath" value="/home/ssj5kc/software/vrep"/>
-  </include>
-  <node name="sim" pkg="aseia_car_sim" type="simulation"/>
-  <group ns="cars">
-    <group ns="controllers">
-      <group ns="lane">
-        <param name="type"   value="pid"/>
-        <param name="p"      value="4"/>
-        <param name="ref"    value="laneOffset"/>
-      </group>
-      <group ns="cruise">
-        <param name="type" value="set"/>
-        <param name="ref"  value="speed"/>
-      </group>
-    </group>
-    <group ns="sensors">
-      <group ns="lane">
-        <param name="type"   value="laneSensor"/>
-        <param name="handle" value="RoadSensor"/>
-      </group>
-    </group>
-    <group ns="actuators">
-      <group ns="command">
-        <param name="type"   value="command"/>
-        <param name="lSteer" value="SteeringLeft"/>
-        <param name="rSteer" value="SteeringRight"/>
-        <param name="lMotor" value="MotorLeft"/>
-        <param name="rMotor" value="MotorRight"/>
-        <param name="blAxis" value="FreeAxisLeft"/>
-        <param name="car"    value="Car"/>
-      </group>
-    </group>
-    <group ns="references">
-      <group ns="laneOffset">
-        <param name="type" value="float"/>
-        <param name="value" value="0.0"/>
-      </group>
-      <group ns="speed">
-        <param name="type" value="float"/>
-        <param name="value" value="10.0"/>
-      </group>
-    </group>
-    <node name="car0" pkg="aseia_car_sim" type="car">
-      <param name="index"      value="0"/>
-      <param name="ctrls"      value="lane, cruise"/>
-      <param name="sens"       value="lane"/>
-      <param name="acts"       value="command"/>
-      <param name="refs"       value="laneOffset, speed"/>
-    </node>
-  </group>
+  <include file="$(find aseia_car_sim)/launch/sim.launch"/>
+  <include file="$(find aseia_car_sim)/launch/basic_car.launch"/>
+  <include file="$(find aseia_car_sim)/launch/basic_scenario.launch"/>
 </launch>

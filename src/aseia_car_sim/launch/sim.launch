@@ -1,0 +1,3 @@
+<launch>
+  <node name="sim" pkg="aseia_car_sim" type="simulation"/>
+</launch>
