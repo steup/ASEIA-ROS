@@ -71,7 +71,6 @@ namespace car {
     private:
       using CarMap = std::map<string, CarProxy>;
       CarMap mCars;
-      ros::ServiceClient mStepSrv, mStartSrv, mStopSrv;
       ros::ServiceServer mRegSrv;
 
       bool registerCar(RegisterCar::Request& req, RegisterCar::Response& res) {
@@ -89,56 +88,62 @@ namespace car {
           return true;
       }
 
-      enum class Trigger {
-        start,
-        stop,
-        step
-      };
-
-      bool trigger(Trigger t) {
-        simRosSynchronousTrigger step;
-        simRosStartSimulation    start;
-        simRosStopSimulation     stop;
-        switch(t) {
-          case(Trigger::step) : ROS_DEBUG_STREAM("Call Step Service");
-                                if( !mStepSrv.call(step) )
-                                  return false;
-                                return step.response.result != -1;
-          case(Trigger::start): ROS_DEBUG_STREAM("Call Start Service");
-                                if( !mStartSrv.call(start) )
-                                  return false;
-                                return stop.response.result != -1;
-          case(Trigger::stop) : ROS_DEBUG_STREAM("Call Stop Service");
-                                if( !mStopSrv.call(stop) )
-                                  return false;
-                                return start.response.result != -1;
-          default:              return false;
+      void sync() {
+        simRosSynchronous arg;
+        arg.request.enable = 1;
+        ros::ServiceClient srv = ros::NodeHandle().serviceClient< decltype(arg) >( "/vrep/simRosSynchronous");
+        srv.waitForExistence();
+        if (!srv.call(arg) || arg.response.result == -1) {
+          ROS_FATAL_STREAM("Cannot enable synchronous mode of V-REP");
+          ros::shutdown();
         }
       }
 
-    public:
-      Simulation() {
-        ros::NodeHandle nh;
-        ros::ServiceClient setSyncSrv = nh.serviceClient< simRosSynchronous >( "/vrep/simRosSynchronous");
-        setSyncSrv.waitForExistence();
-        mRegSrv   = nh.advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this);
-        mStepSrv  = nh.serviceClient< simRosSynchronousTrigger >( "/vrep/simRosSynchronousTrigger", true);
-        mStartSrv = nh.serviceClient< simRosStartSimulation    >( "/vrep/simRosStartSimulation"   , true);
-        mStopSrv  = nh.serviceClient< simRosStopSimulation     >( "/vrep/simRosStopSimulation"    , true);
-        simRosSynchronous sync;
-        sync.request.enable = 1;
-        if(! setSyncSrv.call(sync)  || sync.response.result == -1)
-          ROS_FATAL_STREAM("Switching VREP to synchronous mode failed!");
-        if( !trigger(Trigger::start) )
-          ROS_FATAL_STREAM("Starting VREP simulation failed!");
+      void start() {
+        simRosStartSimulation arg;
+        ros::ServiceClient srv = ros::NodeHandle().serviceClient< decltype(arg) >( "/vrep/simRosStartSimulation");
+        srv.waitForExistence();
+        if (!srv.call(arg) || arg.response.result == -1) {
+          ROS_FATAL_STREAM("Cannot start simulation");
+          ros::shutdown();
+        }
         ROS_INFO_STREAM("Simulation started");
       }
 
       void stop() {
         ROS_INFO_STREAM("Simulation ends");
-        if( !trigger(Trigger::stop) )
-          ROS_FATAL_STREAM("Stopping VREP simulation failed!");
-        ros::spinOnce();
+        simRosStopSimulation arg;
+        ros::ServiceClient srv = ros::NodeHandle().serviceClient< decltype(arg) >( "/vrep/simRosStopSimulation");
+        srv.waitForExistence();
+        if (!srv.call(arg) || arg.response.result == -1) {
+          ROS_FATAL_STREAM("Cannot stop simulation");
+          ros::shutdown();
+        }
+
+      }
+
+      void step() {
+        ros::NodeHandle nh;
+        simRosSynchronousTrigger arg;
+        static ros::ServiceClient srv = nh.serviceClient< decltype(arg) >( "/vrep/simRosSynchronousTrigger", true);
+        if (!srv.call(arg))
+          if(srv.exists())
+            srv = nh.serviceClient< decltype(arg) >( "/vrep/simRosSynchronousTrigger", true);
+          else {
+            ROS_FATAL_STREAM("V-REP is gone! Stopping simulation!");
+            ros::shutdown();
+          }  
+        else
+          if(arg.response.result == -1)
+            ROS_ERROR_STREAM("Cannot advance simulation");
+      }
+
+    public:
+      Simulation()
+        : mRegSrv(ros::NodeHandle().advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this))
+      {
+        sync();
+        start();
       }
 
       ~Simulation() { stop(); }
@@ -155,8 +160,7 @@ namespace car {
             if(car.second)
               done &=car.second.isDone();
         }while(!done);
-        if( !trigger(Trigger::step) )
-          ROS_FATAL_STREAM("Advancing Simulation failed!");
+        step();
       }
   };
 }
