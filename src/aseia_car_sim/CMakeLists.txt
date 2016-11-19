@@ -22,7 +22,8 @@ catkin_package()
 include_directories(${catkin_INCLUDE_DIRS})
 
 add_executable(simulation src/Simulation.cpp)
-add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp)
+add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp
+  src/DataException.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
 target_link_libraries(car ${catkin_LIBRARIES})
 add_dependencies(simulation ${PROJECT_NAME}_generate_messages_cpp)

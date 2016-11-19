@@ -8,6 +8,9 @@
 #include <vrep_common/simRosAddStatusbarMessage.h>
 #include <vrep_common/simRosSynchronous.h>
 #include <vrep_common/simRosSynchronousTrigger.h>
+#include <vrep_common/VrepInfo.h>
+
+#include <signal.h>
 
 namespace car {
 
@@ -29,6 +32,12 @@ namespace car {
         : mName(name)
       {
         reset();
+      }
+
+      ~CarProxy() {
+        ROS_DEBUG_STREAM("Sending kill to car " << mName);
+        mState.request.command = mState.request.KILL;
+        srv.call(mState);
       }
 
       operator bool() const { return mState.response.alive; }
@@ -72,6 +81,13 @@ namespace car {
       using CarMap = std::map<string, CarProxy>;
       CarMap mCars;
       ros::ServiceServer mRegSrv;
+      VrepInfo mInfo;
+      ros::Subscriber mInfoSub;
+
+      void handleInfo(VrepInfo::ConstPtr info) {
+        ROS_DEBUG_STREAM("Got V-Rep simulation info");
+        mInfo = *info;
+      }
 
       bool registerCar(RegisterCar::Request& req, RegisterCar::Response& res) {
           pair<CarMap::iterator, bool> iter = mCars.emplace(req.name, req.name);
@@ -122,7 +138,8 @@ namespace car {
 
       }
 
-      void step() {
+      bool step() {
+        ROS_DEBUG_STREAM("Advancing simulation");
         ros::NodeHandle nh;
         simRosSynchronousTrigger arg;
         static ros::ServiceClient srv = nh.serviceClient< decltype(arg) >( "/vrep/simRosSynchronousTrigger", true);
@@ -136,17 +153,26 @@ namespace car {
         else
           if(arg.response.result == -1)
             ROS_ERROR_STREAM("Cannot advance simulation");
+          else
+            return true;
+        return false;
       }
 
     public:
       Simulation()
-        : mRegSrv(ros::NodeHandle().advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this))
+        : mRegSrv(ros::NodeHandle().advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this)),
+          mInfoSub(ros::NodeHandle().subscribe("/vrep/info", 1, &Simulation::handleInfo, this))
       {
         sync();
         start();
       }
 
-      ~Simulation() { stop(); }
+      ~Simulation() { 
+        cerr << "Ending Simulation" << endl;
+        stop();
+        while(step() && mInfo.simulatorState.data)
+          ros::spinOnce();
+      }
 
       void update() {
         ros::NodeHandle nh;
@@ -167,14 +193,26 @@ namespace car {
 
 using namespace car;
 
+Simulation* simPtr;
+
+void quit(int signal) {
+    if(simPtr) {
+      delete  simPtr;
+      simPtr = nullptr;
+    }
+    ros::shutdown();
+}
+
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "simulation");
+  ros::init(argc, argv, "simulation", ros::init_options::NoSigintHandler);
+  signal(SIGINT, quit);
   ros::NodeHandle nh;
   nh.setParam("simName", ros::this_node::getName());
-  Simulation sim;
-  while(ros::ok()) {
-    sim.update();
+  simPtr=new Simulation();
+  while(ros::ok() && simPtr) {
+    simPtr->update();
     ros::spinOnce();
   }
+  cerr << "Sim Program  ends" <<  endl;
   return 0;
 }

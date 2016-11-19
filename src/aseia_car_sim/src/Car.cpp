@@ -1,5 +1,6 @@
 #include "Car.h"
 #include "Data.h"
+#include "DataException.h"
 #include "Controller.h"
 
 #include <aseia_car_sim/RegisterCar.h>
@@ -106,22 +107,29 @@ namespace car {
         unique_lock<mutex> lock(mMutex);
         mCond.wait(lock);
         ROS_DEBUG_STREAM("Updating car " << name());
-        if(mAlive) {
-        for( DataElem& data : mSensor )
-          if( data.second && data.second->isInput() )
-            if( !data.second->update() )
-              mAlive = false;
+        try {
+          if(mAlive) {
+          for( DataElem& data : mSensor )
+            if( data.second && data.second->isInput() )
+              if( !data.second->update() )
+                mAlive = false;
 
-        for( ControllerPtr& ctrlPtr : mControl )
-          if( ctrlPtr )
-            if( !(*ctrlPtr)() )
-              mAlive = false;
+          for( ControllerPtr& ctrlPtr : mControl )
+            if( ctrlPtr )
+              if( !(*ctrlPtr)() )
+                mAlive = false;
 
 
-        for( DataElem& data : mAct )
-          if( data.second && data.second->isOutput() )
-            if( !data.second->update() )
-              mAlive = false;
+          for( DataElem& data : mAct )
+            if( data.second && data.second->isOutput() )
+              if( !data.second->update() )
+                mAlive = false;
+          }
+        }
+        catch(const DataException& e) {
+          ROS_ERROR_STREAM(e.what());
+          if(e.reason==DataException::Reason::vrepGone || e.reason == DataException::Reason::serviceGone)
+            ros::shutdown();
         }
         mDone = true;
         ROS_DEBUG_STREAM("Updating car " << name() << "done");
@@ -135,6 +143,9 @@ namespace car {
                                              mCond.notify_one();
                                              break;
           case(UpdateCar::Request::DONE)   : res.done = mDone.load();
+                                             break;
+          case(UpdateCar::Request::KILL)   : ros::shutdown();
+                                             mCond.notify_one();
                                              break;
         }
         res.alive = mAlive;

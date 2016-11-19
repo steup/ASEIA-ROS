@@ -1,4 +1,5 @@
 #include "Data.h"
+#include "DataException.h"
 #include "Car.h"
 
 #include <ros/ros.h>
@@ -22,16 +23,35 @@ namespace car {
 
   static ros::ServiceClient handleSrv, poseSrv, depthSrv, jointPosSrv, jointVelSrv;
 
+  template<typename ServiceType>
+  void checkedCall(ros::ServiceClient& srv, ServiceType& data){
+    if( !srv.call(data))
+      if(!srv.exists()) 
+        throw DataException(DataException::Reason::vrepGone);
+      else
+        throw DataException(DataException::Reason::serviceGone);
+    if(data.response.result==-1)
+        throw DataException(DataException::Reason::badResult);
+  }
+
+  void checkedCall(ros::ServiceClient& srv, simRosGetObjectHandle& data){
+    if( !srv.call(data))
+      if(!srv.exists()) 
+        throw DataException(DataException::Reason::vrepGone);
+      else
+        throw DataException(DataException::Reason::serviceGone);
+    if(data.response.handle==-1)
+        throw DataException(DataException::Reason::badResult);
+  }
+
+
   static int getHandle(const string& objectName, int index = -1) {
     static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectHandle >( "/vrep/simRosGetObjectHandle", true);
     simRosGetObjectHandle handle;
     handle.request.objectName = objectName;
     if(index != -1)
       handle.request.objectName += "#"+to_string(index);
-    if( !srv.call(handle) ) {
-      ROS_ERROR_STREAM("Service call to get handle of "<<handle.request.objectName<<" failed");
-      return -1;
-    }
+    checkedCall(srv, handle);
     if(handle.response.handle == -1)
       ROS_ERROR_STREAM("No V-REP object with name "<<handle.request.objectName<<" found");
     return handle.response.handle;
@@ -42,8 +62,7 @@ namespace car {
     simRosGetObjectPose pose;
     pose.request.handle = handle;
     pose.request.relativeToObjectHandle = reference;
-    if( !srv.call(pose) || pose.response.result == -1 )
-      ROS_ERROR_STREAM("Error getting pose of object with handle " << handle);
+    checkedCall(srv, pose);
     float x,y,z;
     x = pose.response.pose.pose.position.x;
     y = pose.response.pose.pose.position.y;
@@ -56,10 +75,7 @@ namespace car {
     simRosSetJointTargetPosition data;
     data.request.handle = handle;
     data.request.targetPosition = angle;
-    if( !srv.call(data) || data.response.result == -1 ) {
-      ROS_ERROR_STREAM("Error setting angle of joint handle " << handle);
-      return false;
-    }
+    checkedCall(srv, data);
     return true;
   }
 
@@ -68,10 +84,7 @@ namespace car {
     simRosSetJointTargetVelocity data;
     data.request.handle = handle;
     data.request.targetVelocity = vel;
-    if( !srv.call(data) || data.response.result == -1 ) {
-      ROS_ERROR_STREAM("Error setting speed of joint handle " << handle);
-      return false;
-    }
+    checkedCall(srv,  data);
     return true;
   }
 
@@ -160,10 +173,7 @@ namespace car {
       }
 
       virtual bool update() {
-        if(!srv.call(mScan)) {
-          ROS_ERROR_STREAM("Error on road scan retrieval of RoadSensor " << mScan.request.handle);
-          return false;
-        }
+        checkedCall(srv, mScan);
         size_t start, stop;
         bool left = false;
         size_t resolution = mScan.response.resolution[0]*mScan.response.resolution[1];
