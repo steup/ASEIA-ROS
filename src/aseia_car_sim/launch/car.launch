@@ -1,0 +1,50 @@
+<launch>
+  <arg name="index"/>
+  <group ns="cars">
+    <group ns="controllers">
+      <group ns="lane">
+        <param name="type"   value="pid"/>
+        <param name="p"      value="4"/>
+        <param name="ref"    value="laneOffset"/>
+      </group>
+      <group ns="cruise">
+        <param name="type" value="set"/>
+        <param name="ref"  value="speed"/>
+      </group>
+    </group>
+    <group ns="sensors">
+      <group ns="lane">
+        <param name="type"   value="laneSensor"/>
+        <param name="handle" value="RoadSensor"/>
+      </group>
+    </group>
+    <group ns="actuators">
+      <group ns="command">
+        <param name="type"   value="command"/>
+        <param name="lSteer" value="SteeringLeft"/>
+        <param name="rSteer" value="SteeringRight"/>
+        <param name="lMotor" value="MotorLeft"/>
+        <param name="rMotor" value="MotorRight"/>
+        <param name="blAxis" value="FreeAxisLeft"/>
+        <param name="car"    value="Car"/>
+      </group>
+    </group>
+    <group ns="references">
+      <group ns="laneOffset">
+        <param name="type" value="float"/>
+        <param name="value" value="0.0"/>
+      </group>
+      <group ns="speed">
+        <param name="type" value="float"/>
+        <param name="value" value="30.0"/>
+      </group>
+    </group>
+    <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
+      <param name="index"      value="$(arg index)"/>
+      <param name="ctrls"      value="lane, cruise"/>
+      <param name="sens"       value="lane"/>
+      <param name="acts"       value="command"/>
+      <param name="refs"       value="laneOffset, speed"/>
+    </node>
+  </group>
+</launch>
