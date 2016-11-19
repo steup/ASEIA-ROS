@@ -38,7 +38,7 @@
         <param name="value" value="10.0"/>
       </group>
     </group>
-    <node name="car0" pkg="aseia_car_sim" type="car">
+    <node name="car0" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
       <param name="index"      value="0"/>
       <param name="ctrls"      value="lane, cruise"/>
       <param name="sens"       value="lane"/>
