@@ -1,4 +1,5 @@
 <launch>
+  <arg name="index"/>
   <group ns="cars">
     <group ns="controllers">
       <group ns="lane">
@@ -35,11 +36,11 @@
       </group>
       <group ns="speed">
         <param name="type" value="float"/>
-        <param name="value" value="10.0"/>
+        <param name="value" value="30.0"/>
       </group>
     </group>
-    <node name="car0" pkg="aseia_car_sim" type="car" launch-prefix="gdbserver --once :1234 " output="screen">
-      <param name="index"      value="0"/>
+    <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="gdbserver --once :1234">
+      <param name="index"      value="$(arg index)"/>
       <param name="ctrls"      value="lane, cruise"/>
       <param name="sens"       value="lane"/>
       <param name="acts"       value="command"/>

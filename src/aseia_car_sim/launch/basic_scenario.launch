@@ -1,6 +1,0 @@
-<launch>
-  <include file="$(find vrep)/launch/vrep.launch">
-    <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/$(arg scenario).ttt"/>
-    <arg name="VREPPath" value="~/software/vrep"/>
-  </include>
-</launch>

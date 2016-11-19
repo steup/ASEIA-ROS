@@ -1,6 +1,0 @@
-<launch>
-  <include file="$(find aseia_base)/launch/manager.launch"/>
-  <include file="$(find aseia_car_sim)/launch/sim.launch"/>
-  <include file="$(find aseia_car_sim)/launch/basic_car.launch"/>
-  <include file="$(find aseia_car_sim)/launch/basic_scenario.launch"/>
-</launch>
