@@ -54,7 +54,7 @@ namespace car {
       float value() const { return mValue; }
       void value(float v) { mValue = v; }
       virtual bool update() { return true; }
-      void print(std::ostream& o) const { o << type() << " " << mValue; }
+      virtual void print(std::ostream& o) const { o << type() << " " << mValue; }
   };
 
   using DataPtr       = std::unique_ptr< Data >;
