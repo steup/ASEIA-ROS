@@ -5,6 +5,7 @@
 #include <ros/ros.h>
 
 #include <vrep_common/simRosGetVisionSensorDepthBuffer.h>
+#include <vrep_common/simRosReadProximitySensor.h>
 #include <vrep_common/simRosGetObjectHandle.h>
 #include <vrep_common/simRosGetObjectPose.h>
 #include <vrep_common/simRosSetJointTargetPosition.h>
@@ -17,29 +18,33 @@ namespace car {
 
   using namespace std;
   using namespace vrep_common;
+  using namespace Eigen;
 
-  using A2 = Eigen::Array2f;
-  using V3 = Eigen::Vector3f;
+  using A2 = Array2f;
+  using V3 = Vector3f;
+  using MV3 = Map<Vector3f>;
 
   static ros::ServiceClient handleSrv, poseSrv, depthSrv, jointPosSrv, jointVelSrv;
 
   template<typename ServiceType>
   void checkedCall(ros::ServiceClient& srv, ServiceType& data){
-    if( !srv.call(data))
-      if(!srv.exists()) 
+    if( !srv.call(data)) {
+      if(!srv.exists())
         throw DataException(DataException::Reason::vrepGone);
       else
         throw DataException(DataException::Reason::serviceGone);
+    }
     if(data.response.result==-1)
         throw DataException(DataException::Reason::badResult);
   }
 
   void checkedCall(ros::ServiceClient& srv, simRosGetObjectHandle& data){
-    if( !srv.call(data))
-      if(!srv.exists()) 
+    if( !srv.call(data)) {
+      if(!srv.exists())
         throw DataException(DataException::Reason::vrepGone);
       else
         throw DataException(DataException::Reason::serviceGone);
+    }
     if(data.response.handle==-1)
         throw DataException(DataException::Reason::badResult);
   }
@@ -152,12 +157,16 @@ namespace car {
       }
   };
 
+  static void getVisionDepthData(simRosGetVisionSensorDepthBuffer& buffer) {
+    static ros::ServiceClient srv = ros::NodeHandle().serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
+    checkedCall(srv, buffer);
+  }
+
 
   class LaneSensor : public Float {
     private:
       simRosGetVisionSensorDepthBuffer mScan;
       float mPos;
-      ros::ServiceClient srv;
       float roadTreshold = 0.9;
     public:
       using Resolution = pair<unsigned int, unsigned int>;
@@ -168,13 +177,12 @@ namespace car {
         if( !ros::param::get(path+"/handle", name) )
           ROS_ERROR_STREAM("No V-REP sensor name supplied as \"handle\" for lane sensor " << path);
         mScan.request.handle = getHandle(name, car.index());
-        srv = ros::NodeHandle().serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
         update();
       }
 
       virtual bool update() {
-        checkedCall(srv, mScan);
-        size_t start, stop;
+        getVisionDepthData(mScan);
+        size_t start=0, stop=0;
         bool left = false;
         size_t resolution = mScan.response.resolution[0]*mScan.response.resolution[1];
         for( size_t i = 0; i < resolution; i++ ) {
@@ -191,7 +199,68 @@ namespace car {
       }
 
       virtual void print(ostream& o) const {
-        o << "Lane Position of sensor " << mScan.request.handle << ": " << value();
+        o << "Lane Position of sensor " << mScan.request.handle << ": " << mValue;
+      }
+  };
+
+  class VisionDistanceSensor: public Float {
+    private:
+      simRosGetVisionSensorDepthBuffer mScan;
+      using Resolution = pair<unsigned int, unsigned int>;
+    public:
+      VisionDistanceSensor(const std::string& path, const Car& car)
+        : Float(path, car, true)
+      {
+          string name;
+          if( !ros::param::get(path+"/handle", name) )
+            ROS_ERROR_STREAM("No V-REP sensor name supplied as \"handle\" for vision depth sensor " << path);
+          mScan.request.handle = getHandle(name, car.index());
+          update();
+      }
+        virtual bool update() {
+          getVisionDepthData(mScan);
+          mValue = numeric_limits<float>::infinity();
+          for(const float currentValue : mScan.response.buffer)
+            if(currentValue < mValue)
+              mValue = currentValue;
+          ROS_DEBUG_STREAM(*this);
+          return mValue != numeric_limits<float>::infinity();
+        }
+
+        virtual void print(ostream& o) const {
+          o << "Vision Distance Sensor value: " << mScan.request.handle << ": " << mValue;
+        }
+  };
+
+  static void getProximityDistance(simRosReadProximitySensor& buffer) {
+      static ros::ServiceClient srv = ros::NodeHandle().serviceClient<simRosReadProximitySensor>("/vrep/simRosReadProximitySensor", true);
+      checkedCall(srv, buffer);
+  }
+
+  class ProximityDistanceSensor: public Float {
+    private:
+      simRosReadProximitySensor mData;
+      using Resolution = pair<unsigned int, unsigned int>;
+    public:
+      ProximityDistanceSensor(const std::string& path, const Car& car)
+        : Float(path, car, true)
+      {
+          string name;
+          if( !ros::param::get(path+"/handle", name) )
+            ROS_ERROR_STREAM("No V-REP sensor name supplied as \"handle\" for distance sensor " << path);
+          mData.request.handle = getHandle(name, car.index());
+          update();
+      }
+      virtual bool update() {
+        getProximityDistance(mData);
+        MV3 v(mData.response.detectedPoint.data());
+        mValue = v.norm();
+        ROS_DEBUG_STREAM(*this);
+        return mData.response.result!=-1;
+      }
+
+      virtual void print(ostream& o) const {
+        o << "Proximity Distance Sensor value: " << mData.request.handle << ": " << mValue;
       }
   };
 
@@ -206,6 +275,10 @@ namespace car {
           return DataPtr(new Command(path, car));
         if(type == "float")
           return DataPtr(new Float(path ,car));
+        if(type == "visionDistance")
+          return DataPtr(new VisionDistanceSensor(path ,car));
+        if(type == "proxDistance")
+          return DataPtr(new ProximityDistanceSensor(path ,car));
     }
     return DataPtr();
   }
