@@ -17,6 +17,10 @@
         <param name="type"   value="laneSensor"/>
         <param name="handle" value="RoadSensor"/>
       </group>
+      <group ns="acc">
+        <param name="type"   value="proxDistance"/>
+        <param name="handle" value="ACCSensor"/>
+      </group>
     </group>
     <group ns="actuators">
       <group ns="command">
@@ -42,7 +46,7 @@
     <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
       <param name="index"      value="$(arg index)"/>
       <param name="ctrls"      value="lane, cruise"/>
-      <param name="sens"       value="lane"/>
+      <param name="sens"       value="lane, acc"/>
       <param name="acts"       value="command"/>
       <param name="refs"       value="laneOffset, speed"/>
     </node>
