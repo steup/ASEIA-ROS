@@ -1,12 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <ostream>
-#include <unordered_map>
-
-#include <Eigen/Core>
 
 namespace car {
 
@@ -33,28 +29,15 @@ namespace car {
 
   inline std::ostream& operator<<(std::ostream& o, const Data& d) { d.print(o); return o; }
 
-  class FloatArray  : public Data, public Eigen::Array<float, Eigen::Dynamic, 1>{
-    private:
-      using Base = Eigen::Array<float, Eigen::Dynamic, 1>;
-    public:
-      FloatArray(const std::string& path, const Car& car, size_t n, bool input=false, bool output=false)
-        : Data("float"+std::to_string(n), car, input, output),
-          Base(n)
-      {}
-      virtual void print(std::ostream& o) const { o << (const Base&)(*this); }
-  };
-
   class Float : public Data {
-    protected:
-      float mValue = 0.0f;
     public:
+      float value = 0.0f;
       Float(const std::string& path, const Car& car, bool input = false, bool output = false)
         : Data("float", car, input, output)
       {}
-      float value() const { return mValue; }
-      void value(float v) { mValue = v; }
       virtual bool update() { return true; }
-      virtual void print(std::ostream& o) const { o << type() << " " << mValue; }
+      virtual void print(std::ostream& o) const { o << type() << " " << value; }
+      operator float() const { return value; }
   };
 
   using DataPtr       = std::unique_ptr< Data >;

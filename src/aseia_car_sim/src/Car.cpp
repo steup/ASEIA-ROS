@@ -1,7 +1,7 @@
 #include "Car.h"
 #include "Data.h"
-#include "DataException.h"
 #include "Controller.h"
+#include "VRepWrapper.h"
 
 #include <aseia_car_sim/RegisterCar.h>
 #include <aseia_car_sim/UpdateCar.h>
@@ -14,12 +14,18 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
 #include <condition_variable>
 
 namespace car {
 
   using namespace std;
   using namespace aseia_car_sim;
+  using namespace Eigen;
+  using namespace vrep;
+
+  using A2 = Array2f;
+  using V3 = Vector3f;
 
   class CarImpl : public Car {
     private:
@@ -33,6 +39,10 @@ namespace car {
       atomic<bool> mDone;
       mutex mMutex;
       condition_variable mCond;
+      AngularJoint mLeftSteer, mRightSteer;
+      VelocityJoint mLeftMotor, mRightMotor;
+      Object mCar;
+      const float mWidth, mLength;
 
     public:
 
@@ -93,7 +103,7 @@ namespace car {
           pair<DataMap::iterator, bool> res = mRef.emplace(refName, std::move(dataPtr));
           float value;
           ros::param::get(key+"/"+refName+"/value", value);
-          dynamic_cast<Float&>(*res.first->second).value(value);
+          dynamic_cast<Float&>(*res.first->second).value = value;
           if(res.second)
             ROS_INFO_STREAM("Added " << res.first->first << ": " << *res.first->second);
           return true;
@@ -109,26 +119,46 @@ namespace car {
         ROS_DEBUG_STREAM("Updating car " << name());
         try {
           if(mAlive) {
-          for( DataElem& data : mSensor )
-            if( data.second && data.second->isInput() )
-              if( !data.second->update() )
-                mAlive = false;
+            for( DataElem& data : mSensor )
+              if( data.second && data.second->isInput() )
+                if( !data.second->update() )
+                  mAlive = false;
 
-          for( ControllerPtr& ctrlPtr : mControl )
-            if( ctrlPtr )
-              if( !(*ctrlPtr)() )
-                mAlive = false;
+            for( ControllerPtr& ctrlPtr : mControl )
+              if( ctrlPtr )
+                if( !(*ctrlPtr)() )
+                  mAlive = false;
 
 
-          for( DataElem& data : mAct )
-            if( data.second && data.second->isOutput() )
-              if( !data.second->update() )
-                mAlive = false;
+            for( DataElem& data : mAct )
+              if( data.second && data.second->isOutput() )
+                if( !data.second->update() )
+                  mAlive = false;
+
+            const Float& speed = dynamic_cast<const Float&>(*mAct["speed"]);
+            const Float& steer = dynamic_cast<const Float&>(*mAct["steer"]);
+            A2 speeds = A2::Constant(speed);
+            A2 angles = A2::Zero();
+            if(steer > 0.0001 || steer < -0.0001) {
+              float r = mLength * tanf(M_PI_2 - steer);
+              float a = mWidth / ( r * r + mLength * mLength );
+              A2 s(copysign(steer, 1.0f), -copysign(steer, 1.0f));
+              speeds  *= (s * r * a + mWidth * a + 1).sqrt();
+
+              //compute left and right angle of wheels dependent on radius of curve
+              angles = ( mLength / ( s * mWidth + r) ).unaryExpr(ptr_fun(atanf));
+            }
+            ROS_DEBUG_STREAM("Speed: " << speeds);
+            ROS_DEBUG_STREAM("Angle: " << angles);
+            mLeftSteer.angle(angles(0));
+            mRightSteer.angle(angles(1));
+            mLeftMotor.velocity(speeds(0));
+            mRightMotor.velocity(speeds(1));
           }
         }
-        catch(const DataException& e) {
+        catch(const Exception& e) {
           ROS_ERROR_STREAM(e.what());
-          if(e.reason==DataException::Reason::vrepGone || e.reason == DataException::Reason::serviceGone)
+          if(e.reason==Exception::Reason::vrepGone || e.reason == Exception::Reason::serviceGone)
             ros::shutdown();
         }
         mDone = true;
@@ -154,7 +184,14 @@ namespace car {
 
       CarImpl(std::size_t i, const std::string& simName)
         : Car(i),
-          mDone(false)
+          mDone(false),
+          mLeftSteer("SteeringLeft", index()),
+          mRightSteer("SteeringRight", index()),
+          mLeftMotor("MotorLeft", index()),
+          mRightMotor("MotorRight", index()),
+          mCar("Car", index()),
+          mWidth( (mLeftSteer.position(mCar) - mRightMotor.position(mCar)).norm()/2 ),
+          mLength( (mLeftSteer.position(mCar) - Object("FreeAxisLeft", index()).position(mCar)).norm() )
       {
         ros::NodeHandle nh;
         mUpdateThread=std::move(thread([this](){ while(ros::ok()) this->update(); }));
