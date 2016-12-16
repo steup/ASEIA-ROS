@@ -8,7 +8,7 @@
 
 namespace vrep {
 
-  class Exception : public std::runtime_error {
+  class Exception : public std::exception {
     public:
     enum  class Reason {
       vrepGone,
@@ -16,10 +16,23 @@ namespace vrep {
       serviceGone
     };
     const Reason reason;
-    private:
-      static const char* genMsg(Reason) throw();
     public:
-      Exception(Reason reason) throw();
+      Exception(Reason reason) throw() : reason(reason) {}
+      virtual const char* what() const throw();
+
+  };
+
+  class ExtendedException : public Exception {
+    private:
+      std::ostringstream mOs;
+    public:
+      ExtendedException(const Exception& e) : Exception(e) {}
+      ExtendedException(Reason reason) : Exception(reason) {}
+      ExtendedException(const ExtendedException& e) : Exception(e) { mOs << e.mOs.str(); }
+      //ExtendedException(ExtendedException&& e) : Exception(e), mOs(std::move(e.mOs)) {}
+      virtual const char* what() const throw();
+      template<typename T>
+      ExtendedException& operator<<(const T& t){ mOs << t; return *this;}
   };
 
   class Object{

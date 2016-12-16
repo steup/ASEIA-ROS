@@ -28,6 +28,7 @@ namespace car {
         : Float(path, car, true),
           mSensor(getName(path+"/handle"), car.index())
       {
+        ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
         update();
       }
 
@@ -61,6 +62,7 @@ namespace car {
         : Float(path, car, true),
           mSensor(getName(path+"/handle"), car.index())
       {
+          ROS_INFO_STREAM("Add vision depth sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
           update();
       }
         virtual bool update() {
@@ -87,6 +89,7 @@ namespace car {
         : Float(path, car, true),
           mSensor(getName(path+"/handle"), car.index())
       {
+          ROS_INFO_STREAM("Add proximity sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
           update();
       }
       virtual bool update() {

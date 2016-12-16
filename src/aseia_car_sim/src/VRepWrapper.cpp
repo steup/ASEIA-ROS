@@ -14,8 +14,8 @@ namespace vrep {
 using namespace vrep_common;
 using namespace std;
 
-const char* Exception::genMsg(Reason r) throw(){
-  switch(r) {
+const char* Exception::what() const throw() {
+  switch(reason) {
     case(Reason::vrepGone)   : return "V-Rep is gone";
     case(Reason::badResult)  : return "Service call failed with bad result";
     case(Reason::serviceGone): return "Persistent service is gone";
@@ -23,10 +23,9 @@ const char* Exception::genMsg(Reason r) throw(){
   }
 }
 
-Exception::Exception(Reason reason) throw()
-  : runtime_error(genMsg(reason)),
-    reason(reason)
-{}
+const char* ExtendedException::what() const throw() {
+  return ( string(Exception::what()) + mOs.str() ).c_str();
+}
 
 template<typename ServiceType>
 void checkedCall(ros::ServiceClient& srv, ServiceType& data){
@@ -58,7 +57,11 @@ int getHandle(const string& objectName, int index = -1) {
   handle.request.objectName = objectName;
   if(index != -1)
     handle.request.objectName += "#"+to_string(index);
-  checkedCall(srv, handle);
+  try {
+    checkedCall(srv, handle);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "No object with name" << handle.request.objectName << " - " << __FILE__ << ":" << __LINE__;
+  }
   if(handle.response.handle == -1)
     ROS_ERROR_STREAM("No V-REP object with name "<<handle.request.objectName<<" found");
   return handle.response.handle;
@@ -69,7 +72,11 @@ static void setAngle(int handle, float angle) {
   simRosSetJointTargetPosition data;
   data.request.handle = handle;
   data.request.targetPosition = angle;
-  checkedCall(srv, data);
+  try {
+    checkedCall(srv, data);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot set angle of rotary joint " << data.request.handle << " to " << data.request.targetPosition << " - " << __FILE__ << ":" << __LINE__;
+  }
 }
 
 static void setSpeed(int handle, float vel) {
@@ -77,7 +84,11 @@ static void setSpeed(int handle, float vel) {
   simRosSetJointTargetVelocity data;
   data.request.handle = handle;
   data.request.targetVelocity = vel;
-  checkedCall(srv,  data);
+  try {
+    checkedCall(srv, data);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot set velocity of rotary joint " << data.request.handle << " to " << data.request.targetVelocity << " - " << __FILE__ << ":" << __LINE__;
+  }
 }
 
 static Object::Position getPosition(int handle, int reference) {
@@ -85,7 +96,11 @@ static Object::Position getPosition(int handle, int reference) {
   simRosGetObjectPose pose;
   pose.request.handle = handle;
   pose.request.relativeToObjectHandle = reference;
-  checkedCall(srv, pose);
+  try {
+    checkedCall(srv, pose);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot get position of object " << pose.request.handle << " - " << __FILE__ << ":" << __LINE__;
+  }
   float x,y,z;
   x = pose.response.pose.pose.position.x;
   y = pose.response.pose.pose.position.y;
@@ -95,12 +110,20 @@ static Object::Position getPosition(int handle, int reference) {
 
 static void getVisionDepthData(simRosGetVisionSensorDepthBuffer& buffer) {
     static ros::ServiceClient srv = ros::NodeHandle().serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
+  try {
     checkedCall(srv, buffer);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot get depth buffer from vision sensor " << buffer.request.handle << " - " << __FILE__ << ":" << __LINE__;
+  }
 }
 
 static void getProximityDistance(simRosReadProximitySensor& buffer) {
     static ros::ServiceClient srv = ros::NodeHandle().serviceClient<simRosReadProximitySensor>("/vrep/simRosReadProximitySensor", true);
+  try {
     checkedCall(srv, buffer);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot get distance data from from proximity sensor " << buffer.request.handle << " - " << __FILE__ << ":" << __LINE__;
+  }
 }
 
   Object::Object(string name, int index) throw(Exception)
@@ -135,6 +158,7 @@ static void getProximityDistance(simRosReadProximitySensor& buffer) {
 
   float ProximitySensor::distance() const throw(Exception) {
     simRosReadProximitySensor buffer;
+    buffer.request.handle = handle;
     getProximityDistance(buffer);
     Object::Position v(buffer.response.detectedPoint.data());
     return v.norm();
