@@ -32,7 +32,7 @@
       </group>
       <group ns="frontDist">
         <param name="type"   value="proxDistance"/>
-        <param name="handle" value="FrontDistSens"/>
+        <param name="handle" value="ACCSensor"/>
       </group>
     </group>
     <group ns="actuators">
