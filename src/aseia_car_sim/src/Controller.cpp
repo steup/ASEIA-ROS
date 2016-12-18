@@ -58,7 +58,7 @@ namespace car {
         mE = newE;
         mI += newE;
         act.value +=  mE * mKp + d * mKd + mI * mKi;
-        ROS_DEBUG_STREAM(*this);
+        ROS_DEBUG_STREAM(*this << ": " << in.value << " - " << ref.value << " -> " << act.value);
         return true;
       }
 
@@ -73,7 +73,9 @@ namespace car {
       const string mActName, mRefName;
     public:
       Assign(const string& path, Car& car)
-        : Controller("assign", car, 0)
+        : Controller("assign", car, 0),
+          mActName(getStringParam(path+"/act")),
+          mRefName(getStringParam(path+"/ref"))
       {}
 
       virtual bool operator()() {
@@ -100,7 +102,7 @@ namespace car {
     if(ros::param::get(path+"/type", type)) {
         if(type == "pid")
           return ControllerPtr(new PID(path, car));
-        if(type == "asign")
+        if(type == "assign")
           return ControllerPtr(new Assign(path, car));
     }
     return ControllerPtr();

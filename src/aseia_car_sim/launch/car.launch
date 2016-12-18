@@ -5,7 +5,7 @@
       <group ns="lane">
         <param name="type"   value="pid"/>
         <param name="p"      value="4"/>
-        <param name="ref"    value="laneOffset"/>
+        <param name="ref"    value="null"/>
         <param name="sensor" value="lane"/>
         <param name="act"    value="steer"/>
       </group>
@@ -13,6 +13,11 @@
         <param name="type" value="assign"/>
         <param name="ref"  value="speed"/>
         <param name="act"  value="speed"/>
+      </group>
+      <group ns="straight">
+        <param name="type" value="assign"/>
+        <param name="ref"  value="null"/>
+        <param name="act"  value="steer"/>
       </group>
       <group ns="straight">
         <param name="type" value="assign"/>
@@ -46,10 +51,6 @@
       </group>
     </group>
     <group ns="references">
-      <group ns="laneOffset">
-        <param name="type" value="float"/>
-        <param name="value" value="0.0"/>
-      </group>
       <group ns="speed">
         <param name="type" value="float"/>
         <param name="value" value="30.0"/>
@@ -61,10 +62,10 @@
     </group>
     <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
       <param name="index"      value="$(arg index)"/>
-      <param name="ctrls"      value="lane, cruise"/>
+      <param name="ctrls"      value="lane, cruise, straight"/>
       <param name="sens"       value="lane, frontDist"/>
       <param name="acts"       value="speed, steer"/>
-      <param name="refs"       value="laneOffset, speed"/>
+      <param name="refs"       value="speed, null"/>
     </node>
   </group>
 </launch>
