@@ -160,8 +160,11 @@ static void getProximityDistance(simRosReadProximitySensor& buffer) {
     simRosReadProximitySensor buffer;
     buffer.request.handle = handle;
     getProximityDistance(buffer);
-    Object::Position v(buffer.response.detectedPoint.data());
-    return v.norm();
+    if(buffer.response.result!=0) {
+      Object::Position v(buffer.response.detectedPoint.data());
+      return v.norm();
+    } else
+      return numeric_limits<float>::infinity();
   }
 
   using VDS = VisionDepthSensor;
