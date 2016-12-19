@@ -3,6 +3,7 @@
 #include "Car.h"
 
 #include <ros/ros.h>
+#include <std_msgs/Float32.h>
 
 namespace car {
 
@@ -29,6 +30,7 @@ namespace car {
       const float mKp, mKi, mKd;
       const string mSensorName, mRefName, mActName;
       float mI = 0.0f, mE = 0.0f;
+      ros::Publisher mSensPub, mActPub;
     public:
       PID(const string& path, Car& car)
         : Controller("pid", car, 1),
@@ -38,7 +40,10 @@ namespace car {
           mSensorName(getStringParam(path+"/sensor")),
           mRefName(getStringParam(path+"/ref")),
           mActName(getStringParam(path+"/act"))
-      {}
+      {
+        mSensPub = ros::NodeHandle().advertise<std_msgs::Float32>(mSensorName, 1);
+        mActPub = ros::NodeHandle().advertise<std_msgs::Float32>(mActName, 1);
+      }
 
       std::string dataType() const { return "float"; }
 
@@ -58,6 +63,11 @@ namespace car {
         mE = newE;
         mI += newE;
         act.value +=  mE * mKp + d * mKd + mI * mKi;
+        std_msgs::Float32 msg;
+        msg.data = in.value;
+        mSensPub.publish(msg);
+        msg.data = act.value;
+        mActPub.publish(msg);
         ROS_DEBUG_STREAM(*this << ": " << in.value << " - " << ref.value << " -> " << act.value);
         return true;
       }
@@ -97,6 +107,64 @@ namespace car {
       }
   };
 
+  class Min : public Controller {
+    private:
+      const string mActName, mRefName;
+    public:
+      Min(const string& path, Car& car)
+        : Controller("min", car, 2),
+          mActName(getStringParam(path+"/act")),
+          mRefName(getStringParam(path+"/ref"))
+      {}
+
+      virtual bool operator()() {
+        const Data* refPtr = mCar.getReference(mRefName);
+              Data* actPtr = mCar.getActuator(mActName);
+        if( !refPtr || !actPtr ) {
+          ROS_ERROR_STREAM("Min got not enough data");
+          return false;
+        }
+        const Float& ref = dynamic_cast<const Float&>(*refPtr);
+              Float& act = dynamic_cast<Float&>(*actPtr);
+        act.value =  min(act.value, ref.value);
+        ROS_DEBUG_STREAM(*this << ": min(" << ref.value << ", " << act.value << ")");
+        return true;
+      }
+
+      virtual void print(ostream& o) const {
+        o << type() << ": min(" << mRefName << ", " << mActName << ") -> " << mActName;
+      }
+  };
+
+  class Max : public Controller {
+    private:
+      const string mActName, mRefName;
+    public:
+      Max(const string& path, Car& car)
+        : Controller("max", car, 2),
+          mActName(getStringParam(path+"/act")),
+          mRefName(getStringParam(path+"/ref"))
+      {}
+
+      virtual bool operator()() {
+        const Data* refPtr = mCar.getReference(mRefName);
+              Data* actPtr = mCar.getActuator(mActName);
+        if( !refPtr || !actPtr ) {
+          ROS_ERROR_STREAM("Min got not enough data");
+          return false;
+        }
+        const Float& ref = dynamic_cast<const Float&>(*refPtr);
+              Float& act = dynamic_cast<Float&>(*actPtr);
+        act.value =  max(act.value, ref.value);
+        ROS_DEBUG_STREAM(*this << ": max(" << ref.value << ", " << act.value << ")");
+        return true;
+      }
+
+      virtual void print(ostream& o) const {
+        o << type() << ": max(" << mRefName << ", " << mActName << ") -> " << mActName;
+      }
+  };
+
   ControllerPtr createController(const string& path, Car& car) {
     string type;
     if(ros::param::get(path+"/type", type)) {
@@ -104,6 +172,10 @@ namespace car {
           return ControllerPtr(new PID(path, car));
         if(type == "assign")
           return ControllerPtr(new Assign(path, car));
+        if(type == "min")
+          return ControllerPtr(new Min(path, car));
+        if(type == "max")
+          return ControllerPtr(new Max(path, car));
     }
     return ControllerPtr();
   }
