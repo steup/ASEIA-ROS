@@ -18,6 +18,15 @@ namespace car {
       return "";
   }
 
+  static float getFloatParam(const string& name) {
+    float temp;
+    if (ros::param::get(name, temp))
+      return temp;
+    else
+      return numeric_limits<float>::signaling_NaN();
+  }
+
+
   class LaneSensor : public Float {
     private:
       VisionDepthSensor mSensor;
@@ -57,10 +66,12 @@ namespace car {
   class VisionDistanceSensor: public Float {
     private:
       VisionDepthSensor mSensor;
+      const float mMaxDist;
     public:
       VisionDistanceSensor(const std::string& path, const Car& car)
         : Float(path, car, true),
-          mSensor(getName(path+"/handle"), car.index())
+          mSensor(getName(path+"/handle"), car.index()),
+          mMaxDist(getFloatParam(path+"/farClip")-getFloatParam(path+"/nearClip"))
       {
           ROS_INFO_STREAM("Add vision depth sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
           update();
@@ -72,6 +83,7 @@ namespace car {
             for(ssize_t j = 0; j< mSensor.resolution[1]; j++)
               if(scan(i,j) < value)
                 value = scan(i, j);
+          value *= mMaxDist;
           ROS_DEBUG_STREAM(*this);
           return value != numeric_limits<float>::infinity();
         }
