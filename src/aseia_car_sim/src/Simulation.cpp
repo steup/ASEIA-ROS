@@ -1,7 +1,7 @@
 #include <aseia_car_sim/RegisterCar.h>
-#include <aseia_car_sim/UpdateCar.h>
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 
 #include <vrep_common/simRosStartSimulation.h>
 #include <vrep_common/simRosStopSimulation.h>
@@ -18,71 +18,64 @@ namespace car {
   using namespace vrep_common;
   using namespace aseia_car_sim;
 
+  class SimHandle {
+    public:
+      virtual void updateCars() = 0;
+  };
+
   class CarProxy {
     private:
-      UpdateCar mState;
       string mName;
-      ros::ServiceClient srv;
-    public:
-      CarProxy() {
-        mState.response.alive = false;
+      ros::Subscriber mSub;
+      SimHandle& mSim;
+      bool mDone, mAlive;
+
+      void handleDone(const std_msgs::BoolConstPtr& alive) {
+        mDone=true;
+        mAlive=alive->data;
+        mSim.updateCars();
       }
 
-      CarProxy(const string& name)
-        : mName(name)
+    public:
+      CarProxy(const string& name, SimHandle& sim)
+        : mName(name),
+          mSim(sim)
       {
+        mSub=ros::NodeHandle().subscribe(mName+"/done", 1, &CarProxy::handleDone, this);
         reset();
       }
 
       ~CarProxy() {
         ROS_DEBUG_STREAM("Sending kill to car " << mName);
-        mState.request.command = mState.request.KILL;
-        srv.call(mState);
       }
 
-      operator bool() const { return mState.response.alive; }
+      operator bool() const { return mAlive; }
 
       void trigger() {
-        if(mState.response.alive) {
+        if(mAlive) {
           ROS_DEBUG_STREAM("Triggering car " << mName);
-          mState.request.command = mState.request.TRIGGER;
-          if( !srv.call(mState) ) {
-            ROS_ERROR_STREAM("Error triggering car " << mName);
-            mState.response.alive = false;
-          }
-          ROS_DEBUG_STREAM("Triggering car " << mName << " done");
+          mDone = false;
         }
-        ROS_DEBUG_STREAM("Car " << mName << " is " << (mState.response.alive?"":"not") << "alive");
+        ROS_DEBUG_STREAM("Car " << mName << " is " << (mAlive?"":"not") << "alive");
       }
-
-      bool isDone() {
-        if(mState.response.alive) {
-          ROS_DEBUG_STREAM("Waiting for car " << mName);
-          mState.request.command = mState.request.DONE;
-          if( !srv.call(mState) ) {
-            ROS_ERROR_STREAM("Error waiting for car " << mName);
-            mState.response.alive = false;
-          }
-          return mState.response.done;
-          ROS_DEBUG_STREAM("car " << mName << "is " << (mState.response.done?"":"not") << " done");
-        }
-        ROS_DEBUG_STREAM("Car " << mName << " is " << (mState.response.alive?"":"not") << "alive");
-        return true;
-      }
+      
+      bool isDone() const { return mDone; }
 
       void reset() {
-        srv = ros::NodeHandle().serviceClient<UpdateCar>(mName+"/update", true);
-        mState.response.alive = true;
+        mAlive = true;
+        mDone = true;
       }
   };
 
-  class Simulation {
+  class Simulation : public SimHandle {
     private:
       using CarMap = std::map<string, CarProxy>;
       CarMap mCars;
       ros::ServiceServer mRegSrv;
       VrepInfo mInfo;
       ros::Subscriber mInfoSub;
+      ros::Publisher mCarUpdatePub;
+      ros::Timer mTimeout;
 
       void handleInfo(VrepInfo::ConstPtr info) {
         ROS_DEBUG_STREAM("Got V-Rep simulation info");
@@ -90,7 +83,10 @@ namespace car {
       }
 
       bool registerCar(RegisterCar::Request& req, RegisterCar::Response& res) {
-          pair<CarMap::iterator, bool> iter = mCars.emplace(req.name, req.name);
+          pair<CarMap::iterator, bool> iter = mCars.emplace(piecewise_construct,
+                                                forward_as_tuple(req.name),
+                                                forward_as_tuple(req.name, *this)
+                                              );
           res.result = false;
           if( iter.second ) {
             res.result = true;
@@ -149,7 +145,7 @@ namespace car {
           else {
             ROS_FATAL_STREAM("V-REP is gone! Stopping simulation!");
             ros::shutdown();
-          }  
+          }
         else
           if(arg.response.result == -1)
             ROS_ERROR_STREAM("Cannot advance simulation");
@@ -161,58 +157,63 @@ namespace car {
     public:
       Simulation()
         : mRegSrv(ros::NodeHandle().advertiseService(ros::this_node::getName()+"/registerCar", &Simulation::registerCar, this)),
-          mInfoSub(ros::NodeHandle().subscribe("/vrep/info", 1, &Simulation::handleInfo, this))
+          mInfoSub(ros::NodeHandle().subscribe("/vrep/info", 1, &Simulation::handleInfo, this)),
+          mCarUpdatePub(ros::NodeHandle().advertise<std_msgs::Bool>("/cars/update", 1)),
+          mTimeout(ros::NodeHandle().createTimer(ros::Duration(1), &Simulation::update, this, true))
       {
         sync();
         start();
       }
 
-      ~Simulation() { 
+      virtual ~Simulation() {
         cerr << "Ending Simulation" << endl;
+        std_msgs::Bool msg;
+        msg.data=false;
+        mCarUpdatePub.publish(msg);
         stop();
-        while(step() && mInfo.simulatorState.data)
+        do{
           ros::spinOnce();
+        }while(step() && mInfo.simulatorState.data);
       }
 
-      void update() {
+
+      void update(const ros::TimerEvent& e = ros::TimerEvent()) {
         ros::NodeHandle nh;
+        std_msgs::Bool msg;
+        msg.data = true;
+        mCarUpdatePub.publish(msg);
+        mTimeout = ros::NodeHandle().createTimer(ros::Duration(1), &Simulation::update, this, true);
         for(CarMap::value_type& car : mCars)
           if(car.second)
             car.second.trigger();
+      }
+
+      virtual void updateCars() {
         bool done;
-        do {
-          done = true;
-          for(CarMap::value_type& car : mCars)
-            if(car.second)
-              done &=car.second.isDone();
-        }while(!done);
-        step();
+        done = true;
+        for(CarMap::value_type& car : mCars)
+          if(car.second)
+            done &=car.second.isDone();
+        if(done){
+          mTimeout.stop();
+          step();
+          update();
+        }
       }
   };
 }
 
 using namespace car;
 
-Simulation* simPtr;
-
-void quit(int signal) {
-    if(simPtr) {
-      delete  simPtr;
-      simPtr = nullptr;
-    }
-    ros::shutdown();
-}
-
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "simulation", ros::init_options::NoSigintHandler);
-  signal(SIGINT, quit);
+  ros::init(argc, argv, "simulation");
   ros::NodeHandle nh;
   nh.setParam("simName", ros::this_node::getName());
-  simPtr=new Simulation();
-  while(ros::ok() && simPtr) {
-    simPtr->update();
-    ros::spinOnce();
+  Simulation* simPtr = new Simulation();
+  while(ros::ok()) {
+    ros::spin();
   }
+  delete simPtr;
   cerr << "Sim Program  ends" <<  endl;
   return 0;
 }

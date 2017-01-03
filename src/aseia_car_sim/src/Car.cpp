@@ -4,9 +4,9 @@
 #include "VRepWrapper.h"
 
 #include <aseia_car_sim/RegisterCar.h>
-#include <aseia_car_sim/UpdateCar.h>
 
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -34,8 +34,8 @@ namespace car {
       using DataElem = DataMap::value_type;
       DataMap mRef, mSensor, mAct;
       ControlVec mControl;
-      thread mUpdateThread;
-      ros::ServiceServer mUpdateSrv;
+      ros::Subscriber mUpdateSub;
+      ros::Publisher  mDonePub;
       atomic<bool> mDone;
       mutex mMutex;
       condition_variable mCond;
@@ -113,73 +113,62 @@ namespace car {
         return false;
       }
 
-      void update() {
-        unique_lock<mutex> lock(mMutex);
-        mCond.wait(lock);
-        ROS_DEBUG_STREAM("Updating car " << name());
-        try {
-          if(mAlive) {
-            for( DataElem& data : mSensor )
-              if( data.second && data.second->isInput() )
-                if( !data.second->update() )
-                  mAlive = false;
-
-            for( ControllerPtr& ctrlPtr : mControl )
-              if( ctrlPtr )
-                if( !(*ctrlPtr)() )
-                  mAlive = false;
-
-
-            for( DataElem& data : mAct )
-              if( data.second && data.second->isOutput() )
-                if( !data.second->update() )
-                  mAlive = false;
-
-            const Float& speed = dynamic_cast<const Float&>(*mAct["speed"]);
-            const Float& steer = dynamic_cast<const Float&>(*mAct["steer"]);
-            A2 speeds = A2::Constant(speed);
-            A2 angles = A2::Zero();
-            if(steer > 0.0001 || steer < -0.0001) {
-              float r = mLength * tanf(M_PI_2 - steer);
-              float a = mWidth / ( r * r + mLength * mLength );
-              A2 s(copysign(steer, 1.0f), -copysign(steer, 1.0f));
-              speeds  *= (s * r * a + mWidth * a + 1).sqrt();
-
-              //compute left and right angle of wheels dependent on radius of curve
-              angles = ( mLength / ( s * mWidth + r) ).unaryExpr(ptr_fun(atanf));
-            }
-            ROS_DEBUG_STREAM("Speed: " << speeds);
-            ROS_DEBUG_STREAM("Angle: " << angles);
-            mLeftSteer.angle(angles(0));
-            mRightSteer.angle(angles(1));
-            mLeftMotor.velocity(speeds(0));
-            mRightMotor.velocity(speeds(1));
-          }
-        }
-        catch(const Exception& e) {
-          ROS_ERROR_STREAM(e.what());
-          if(e.reason==Exception::Reason::vrepGone || e.reason == Exception::Reason::serviceGone)
-            ros::shutdown();
-        }
-        mDone = true;
-        ROS_DEBUG_STREAM("Updating car " << name() << "done");
-      }
-
       string name() const { return ros::this_node::getName(); }
 
-      bool handleUpdate(UpdateCar::Request& req, UpdateCar::Response& res) {
-        switch(req.command) {
-          case(UpdateCar::Request::TRIGGER): mDone = false;
-                                             mCond.notify_one();
-                                             break;
-          case(UpdateCar::Request::DONE)   : res.done = mDone.load();
-                                             break;
-          case(UpdateCar::Request::KILL)   : ros::shutdown();
-                                             mCond.notify_one();
-                                             break;
+      void handleUpdate(const std_msgs::BoolConstPtr& kill) {
+        if(!kill->data)
+          ros::shutdown();
+        else {
+          ROS_DEBUG_STREAM("Updating car " << name());
+          try {
+            if(mAlive) {
+              for( DataElem& data : mSensor )
+                if( data.second && data.second->isInput() )
+                  if( !data.second->update() )
+                    mAlive = false;
+
+              for( ControllerPtr& ctrlPtr : mControl )
+                if( ctrlPtr )
+                  if( !(*ctrlPtr)() )
+                    mAlive = false;
+
+
+              for( DataElem& data : mAct )
+                if( data.second && data.second->isOutput() )
+                  if( !data.second->update() )
+                    mAlive = false;
+
+              const Float& speed = dynamic_cast<const Float&>(*mAct["speed"]);
+              const Float& steer = dynamic_cast<const Float&>(*mAct["steer"]);
+              A2 speeds = A2::Constant(speed);
+              A2 angles = A2::Zero();
+              if(steer > 0.0001 || steer < -0.0001) {
+                float r = mLength * tanf(M_PI_2 - steer);
+                float a = mWidth / ( r * r + mLength * mLength );
+                A2 s(copysign(steer, 1.0f), -copysign(steer, 1.0f));
+                speeds  *= (s * r * a + mWidth * a + 1).sqrt();
+
+                //compute left and right angle of wheels dependent on radius of curve
+                angles = ( mLength / ( s * mWidth + r) ).unaryExpr(ptr_fun(atanf));
+              }
+              ROS_DEBUG_STREAM("Speed: " << speeds);
+              ROS_DEBUG_STREAM("Angle: " << angles);
+              mLeftSteer.angle(angles(0));
+              mRightSteer.angle(angles(1));
+              mLeftMotor.velocity(speeds(0));
+              mRightMotor.velocity(speeds(1));
+            }
+          }
+          catch(const Exception& e) {
+            ROS_ERROR_STREAM(e.what());
+            if(e.reason==Exception::Reason::vrepGone || e.reason == Exception::Reason::serviceGone)
+              ros::shutdown();
+          }
         }
-        res.alive = mAlive;
-        return true;
+        std_msgs::Bool msg;
+        msg.data = mAlive;
+        mDonePub.publish(msg);
+        ROS_DEBUG_STREAM("Updating car " << name() << "done");
       }
 
       CarImpl(std::size_t i, const std::string& simName)
@@ -194,18 +183,14 @@ namespace car {
           mLength( (mLeftSteer.position(mCar) - Object("FreeAxisLeft", index()).position(mCar)).norm() )
       {
         ros::NodeHandle nh;
-        mUpdateThread=std::move(thread([this](){ while(ros::ok()) this->update(); }));
-        mUpdateSrv = nh.advertiseService(name()+"/update", &CarImpl::handleUpdate, this);
+        mUpdateSub = nh.subscribe("/cars/update", 1, &CarImpl::handleUpdate, this);
+        mDonePub   = nh.advertise<std_msgs::Bool>(name()+"/done", 1);
         RegisterCar reg;
         reg.request.name=name();
         ros::ServiceClient srv = ros::NodeHandle().serviceClient<RegisterCar>(simName+"/registerCar");
         srv.waitForExistence();
         if(! srv.call(reg) || !reg.response.result)
           ROS_FATAL_STREAM("Could not register car "<<name()<< " with simulation " << simName);
-      }
-
-      ~CarImpl() {
-        mUpdateThread.join();
       }
 
       const Data* getReference(const string& name) const {
