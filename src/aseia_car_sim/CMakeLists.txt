@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS roscpp aseia_base vrep_plugin
 add_service_files(
    FILES
    RegisterCar.srv
-   UpdateCar.srv
 )
 
 generate_messages(
