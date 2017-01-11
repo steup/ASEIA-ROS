@@ -109,6 +109,10 @@ target_link_libraries(fittingPub ${catkin_LIBRARIES})
 target_link_libraries(diffFormatPub ${catkin_LIBRARIES})
 target_link_libraries(exampleSub ${catkin_LIBRARIES})
 
+add_dependencies(fittingPub ${catkin_EXPORTED_TARGETS})
+add_dependencies(diffFormatPub ${catkin_EXPORTED_TARGETS})
+add_dependencies(exampleSub ${catkin_EXPORTED_TARGETS})
+
 
 #############
 ## Install ##
