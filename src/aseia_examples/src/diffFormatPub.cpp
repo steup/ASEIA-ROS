@@ -31,7 +31,7 @@ struct EventPub {
     : t(ros::NodeHandle().createTimer(ros::Duration(1.0), &EventPub::run, this))
   {
     te.attribute(id::attribute::Position())    = { { {1, 2} }, { {3,4} }, { {5, 6} } };
-    te.attribute(id::attribute::Time())        = { { {ros::Time::now().toSec(), 1} } };
+    te.attribute(id::attribute::Time())        = { { {(float)ros::Time::now().toSec(), 1} } };
     te.attribute(id::attribute::PublisherID()) = { { {tPub.nodeId()} } };
     se.attribute(id::attribute::Position())    = { { {1000,2000} }, { {3000,4000} }, { {5000, 6000} } };
     se.attribute(id::attribute::Time())        = { { {(uint32_t)ros::Time::now().toSec()/1000, 1} } };
@@ -39,7 +39,7 @@ struct EventPub {
   }
 
   void run(const ros::TimerEvent& msg){
-    te.attribute(id::attribute::Time())        = { { {ros::Time::now().toSec(), 1} } };
+    te.attribute(id::attribute::Time())        = { { {(float)ros::Time::now().toSec(), 1} } };
     se.attribute(id::attribute::Time())        = { { {(uint32_t)ros::Time::now().toSec()/1000, 1} } };
     tPub.publish(te);
     sPub.publish(se);
