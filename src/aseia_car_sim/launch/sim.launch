@@ -1,3 +1,9 @@
 <launch>
+  <include file="$(find aseia_car_sim)/launch/car.launch">
+    <arg name="index" value="0"/>
+  </include>
+  <include file="$(find aseia_car_sim)/launch/car.launch">
+    <arg name="index" value="1"/>
+  </include>
   <node name="sim" pkg="aseia_car_sim" type="simulation" launch-prefix="perf stat "/>
 </launch>

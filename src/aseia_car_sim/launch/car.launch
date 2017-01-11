@@ -61,13 +61,9 @@
       </group>
     </group>
     <group ns="references">
-      <group ns="lowSpeed">
+      <group ns="speed">
         <param name="type" value="float"/>
         <param name="value" value="10.0"/>
-      </group>
-      <group ns="highSpeed">
-        <param name="type" value="float"/>
-        <param name="value" value="15.0"/>
       </group>
       <group ns="null">
         <param name="type" value="float"/>
