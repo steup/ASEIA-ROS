@@ -1,0 +1,3 @@
+[submodule "src/brics_actuator"]
+	path = src/brics_actuator
+	url = https://github.com/wnowak/brics_actuator
