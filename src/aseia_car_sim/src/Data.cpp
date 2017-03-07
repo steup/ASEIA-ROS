@@ -51,7 +51,7 @@ namespace car {
           mSensor(getName(path+"/handle"), car.index())
       {
         ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
-        mEvent.attribute(id::attribute::PublisherID()).value()[0].value(mPub.nodeId());
+        mEvent.attribute(id::attribute::PublisherID()).value()(0,0).value(mPub.nodeId());
         mEvent.attribute(id::attribute::Object()) = { { { car.index() } } };
         update();
       }
