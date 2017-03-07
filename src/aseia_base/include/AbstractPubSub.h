@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ros/ros.h>
 #include <ros/publisher.h>
 #include <ros/node_handle.h>
 #include <ros/console.h>
