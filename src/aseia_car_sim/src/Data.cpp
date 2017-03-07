@@ -1,3 +1,8 @@
+#include <SensorEventPublisher.h>
+#include <BaseEvent.h>
+#include <ID.h>
+#include <Attribute.h>
+
 #include "Data.h"
 #include "Car.h"
 #include "VRepWrapper.h"
@@ -26,9 +31,17 @@ namespace car {
       return numeric_limits<float>::signaling_NaN();
   }
 
+  struct EventConfig : public BaseConfig {
+    using TimeValueType = Value<double, 1>;
+    using PublisherIDValueType = Value<uint64_t, 1, false>;
+  };
 
   class LaneSensor : public Float {
     private:
+      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, false>>;
+      using LaneEvent = BaseEvent<EventConfig>::append<Object>::type;
+      LaneEvent mEvent;
+      SensorEventPublisher<LaneEvent> mPub;
       VisionDepthSensor mSensor;
       float mPos;
       float roadTreshold = 0.9;
@@ -38,6 +51,8 @@ namespace car {
           mSensor(getName(path+"/handle"), car.index())
       {
         ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
+        mEvent.attribute(id::attribute::PublisherID()).value()[0].value(mPub.nodeId());
+        mEvent.attribute(id::attribute::Object()) = { { { car.index() } } };
         update();
       }
 
@@ -55,6 +70,9 @@ namespace car {
         }
         value = ( (float)( start + stop ) / mSensor.resolution[0] ) - 1;
         ROS_DEBUG_STREAM(*this);
+        mEvent.attribute(id::attribute::Time()) = { { { ros::Time::now().toSec(), 0 } } };
+        mEvent.attribute(id::attribute::Position()) = { { { value, 0 }, { 0 } } };
+        mPub.publish(mEvent);
         return true;
       }
 
