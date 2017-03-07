@@ -32,10 +32,10 @@ struct EventPub {
   {
     te.attribute(id::attribute::Position())    = { { {1, 2} }, { {3,4} }, { {5, 6} } };
     te.attribute(id::attribute::Time())        = { { {(float)ros::Time::now().toSec(), 1} } };
-    te.attribute(id::attribute::PublisherID()).value()[0].value(tPub.nodeId());
+    te.attribute(id::attribute::PublisherID()).value()(0,0).value(tPub.nodeId());
     se.attribute(id::attribute::Position())    = { { {1000,2000} }, { {3000,4000} }, { {5000, 6000} } };
     se.attribute(id::attribute::Time())        = { { {(uint32_t)ros::Time::now().toSec()/1000, 1} } };
-    se.attribute(id::attribute::PublisherID()).value()[0].value(sPub.nodeId());
+    se.attribute(id::attribute::PublisherID()).value()(0,0).value(sPub.nodeId());
   }
 
   void run(const ros::TimerEvent& msg){
