@@ -33,12 +33,13 @@ namespace car {
 
   struct EventConfig : public BaseConfig {
     using TimeValueType = Value<double, 1>;
-    using PublisherIDValueType = Value<uint64_t, 1, false>;
+    using PublisherIDValueType = Value<uint64_t, 1, 1, false>;
+    using PositionValueType = Value<float, 2, 1, true>;
   };
 
   class LaneSensor : public Float {
     private:
-      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, false>>;
+      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1>>;
       using LaneEvent = BaseEvent<EventConfig>::append<Object>::type;
       LaneEvent mEvent;
       SensorEventPublisher<LaneEvent> mPub;
@@ -51,8 +52,8 @@ namespace car {
           mSensor(getName(path+"/handle"), car.index())
       {
         ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
-        mEvent.attribute(id::attribute::PublisherID()).value()(0,0).value(mPub.nodeId());
-        mEvent.attribute(id::attribute::Object()) = { { { car.index() } } };
+        mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
+        mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();
         update();
       }
 
@@ -71,7 +72,7 @@ namespace car {
         value = ( (float)( start + stop ) / mSensor.resolution[0] ) - 1;
         ROS_DEBUG_STREAM(*this);
         mEvent.attribute(id::attribute::Time()) = { { { ros::Time::now().toSec(), 0 } } };
-        mEvent.attribute(id::attribute::Position()) = { { { value, 0 }, { 0 } } };
+        mEvent.attribute(id::attribute::Position()) = { {{ value, 0 }}, {{ 0 }} };
         mPub.publish(mEvent);
         return true;
       }
