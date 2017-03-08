@@ -44,5 +44,7 @@
   <exec_depend>vrep</exec_depend>
   <depend>vrep_common</depend>
   <depend>vrep_plugin</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf</depend>
 
 </package>
