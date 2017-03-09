@@ -15,8 +15,10 @@ using namespace ros;
 
 map<string, Publisher> pubs;
 
-struct EventConfig : public BaseConfig {
+const uint32_t UTM = 1;
 
+struct EventConfig : public BaseConfig {
+  using PositionScaleType = Scale<std::ratio<1>, UTM>;
 };
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
@@ -24,8 +26,6 @@ using AngAttr = Attribute<Angle, Value<float, 1>>;
 using GPSPoseEvent = BaseEvent<EventConfig>::append<ObjAttr>::type::append<AngAttr>::type;
 
 void handleSensorInput(const GPSPoseEvent& e) {
-  if(e.attribute(Position()).scale().reference()!=GPS)
-    return;
   uint32_t car = e.attribute(Object()).value()(0.0);
   string topic = "/car"+to_string(car)+"/gps";
   auto it = pubs.find(topic);
