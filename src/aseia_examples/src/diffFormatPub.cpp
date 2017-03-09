@@ -12,8 +12,8 @@ struct WTConfig : public BaseConfig {
 };
 
 struct WSConfig : public BaseConfig {
-  using PositionScale = std::ratio<1, 1000>;
-	using TimeScale = std::ratio<1000>;
+  using PositionScale = Scale<std::milli>;
+	using TimeScale = Scale<std::kilo>;
   using TimeValueType = Value<uint32_t, 1>;
 };
 
