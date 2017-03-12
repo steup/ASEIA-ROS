@@ -39,8 +39,9 @@ namespace car {
 
   class LaneSensor : public Float {
     private:
-      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1>>;
-      using LaneEvent = BaseEvent<EventConfig>::append<Object>::type;
+      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
+      using Angle = Attribute<id::attribute::Angle, Value<float, 1>>;
+      using LaneEvent = BaseEvent<EventConfig>::append<Object>::type::append<Angle>::type;
       LaneEvent mEvent;
       SensorEventPublisher<LaneEvent> mPub;
       VisionDepthSensor mSensor;
