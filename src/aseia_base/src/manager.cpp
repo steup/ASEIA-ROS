@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <pluginlib/class_loader.h>
 
 #include <aseia_base/SensorEvent.h>
 #include <aseia_base/EventType.h>
@@ -15,21 +16,29 @@
 #include <EventID.h>
 #include <IO.h>
 
+#include <boost/algorithm/string/split.hpp>
+
 #include <sstream>
 #include <string>
 #include <list>
 #include <iterator>
+#include <memory>
 
-std::string topic(EventID eID, FormatID fID) {
-  std::ostringstream os;
+using namespace std;
+using boost::split;
+using boost::token_compress_on;
+using boost::is_any_of;
+
+string topic(EventID eID, FormatID fID) {
+  ostringstream os;
   os << "/sensors/" << eID << "/" << fID;
   return os.str();
 }
 
-std::string topic(const EventType& eT) { return topic(eT, eT); }
+string topic(const EventType& eT) { return topic(eT, eT); }
 
-/*bool topic(const std::string& s, EventID& eID, FormatID& fID) {
-  std::istringstream is(s);
+/*bool topic(const string& s, EventID& eID, FormatID& fID) {
+  istringstream is(s);
   is >> "/sensors/" >> eID >> "/" >> fID;
   return true;
 }*/
@@ -37,7 +46,7 @@ std::string topic(const EventType& eT) { return topic(eT, eT); }
 class RosChannel : public Channel {
   protected:
     ros::Publisher mPub;
-    std::list<ros::Subscriber> mSubs;
+    list<ros::Subscriber> mSubs;
 
   public:
     void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType* eTPtr) {
@@ -50,7 +59,7 @@ class RosChannel : public Channel {
 
     RosChannel() = default;
 
-    RosChannel(TransPtr&& trans) : Channel(std::move(trans)) {
+    RosChannel(TransPtr&& trans) : Channel(move(trans)) {
       ros::NodeHandle n;
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
       for(const EventType* in : mTrans->in()) {
@@ -58,7 +67,7 @@ class RosChannel : public Channel {
       }
     }
 
-    RosChannel(RosChannel&& movee) : Channel(std::move(movee)), mPub(movee.mPub){
+    RosChannel(RosChannel&& movee) : Channel(move(movee)), mPub(movee.mPub){
       ros::NodeHandle n;
       for(const EventType* in : mTrans->in()) {
         mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(*in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
@@ -77,15 +86,30 @@ class RosChannel : public Channel {
 class ChannelManager {
   private:
     using ChannelRegistry = AbstractRegistry<RosChannel>;
+    using TransformationLoader = pluginlib::ClassLoader<Transformation>;
+    using TransformationLoaderPtr = unique_ptr<TransformationLoader>;
+    struct Deleter {
+      TransformationLoader& loader;
+      string lookupName;
+      Deleter(TransformationLoader& loader, string lookupName)
+        : loader(loader), lookupName(lookupName) {}
+      void operator()(Transformation* transPtr) {
+        delete transPtr;
+        loader.unloadLibraryForClass(lookupName);
+      }
+    };
+    using TransformationPtr = unique_ptr<Transformation, Deleter>;
     ros::Subscriber mSub;
     ros::ServiceServer mPubSrv;
     ChannelRegistry mChannels;
+    TransformationLoaderPtr mTransLoaderPtr;
+    vector<TransformationPtr> mTransList;
   public:
     bool providePublishers(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
-      std::ostringstream os;
+      ostringstream os;
       os << "Not yet implemented";
       //for(const EventType& eT : mPubs)
-      //  os << topic(eT) << ":" << std::endl << eT;
+      //  os << topic(eT) << ":" << endl << eT;
       res.publishers = os.str();
       return true;
     }
@@ -107,13 +131,28 @@ class ChannelManager {
             if(none_of(mChannels.find(eT).begin(), mChannels.find(eT).end(), comp)) {
               RosChannel c(t.create());
               ROS_INFO_STREAM("Established Channel" << c);
-              mChannels.registerType(eT, std::move(c));
+              mChannels.registerType(eT, move(c));
             } else
               ROS_DEBUG_STREAM("Channel already existing");
         }
       }
     }
     ChannelManager() {
+      string transforms;
+      if( ros::param::get("~transformations", transforms)) {
+        mTransLoaderPtr.reset(new TransformationLoader("aseia_base", "Transformation"));
+        vector<string> transNameList;
+        boost::split(transNameList, transforms, is_any_of(", "), token_compress_on);
+        for(const string& transName : transNameList)
+          try {
+            mTransList.emplace_back(mTransLoaderPtr->createUnmanagedInstance(transName), Deleter(*mTransLoaderPtr, transName));
+            KnowledgeBase::registerTransformation(*mTransList.back());
+          } catch(const pluginlib::LibraryLoadException& e) {
+            ROS_ERROR_STREAM("Error loading library for transformation " << transName << ": " << e.what());
+          } catch(const pluginlib::CreateClassException& e) {
+            ROS_ERROR_STREAM("Error creating transformation " << transName << ": " << e.what());
+          }
+      }
       ros::NodeHandle n;
       mSub = n.subscribe("/sensors/management", 100, &ChannelManager::handleNode, this);
       mPubSrv = n.advertiseService("/sensors/publishers", &ChannelManager::providePublishers, this);
