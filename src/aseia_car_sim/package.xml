@@ -40,11 +40,16 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <exec_depend>aseia_base</exec_depend>
   <exec_depend>vrep</exec_depend>
+  <depend>aseia_base</depend>
   <depend>vrep_common</depend>
   <depend>vrep_plugin</depend>
   <depend>nav_msgs</depend>
   <depend>tf</depend>
+  <depend>pluginlib</depend>
+
+  <export>
+    <aseia_base plugin="${prefix}/transformations.xml"/>
+  </export>
 
 </package>

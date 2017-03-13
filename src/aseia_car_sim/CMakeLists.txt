@@ -7,9 +7,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   nav_msgs
   tf
+  pluginlib
   aseia_base
   vrep_plugin
-  vrep_common)
+  vrep_common
+)
 
 add_service_files(
    FILES
@@ -25,11 +27,14 @@ catkin_package()
 
 include_directories(${catkin_INCLUDE_DIRS})
 
+add_library(CarSimTransformations src/RoadTransformation)
+
 add_executable(simulation src/Simulation.cpp)
 add_executable(bridge src/Bridge.cpp)
 add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp src/VRepWrapper.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
 target_link_libraries(car ${catkin_LIBRARIES})
 target_link_libraries(bridge ${catkin_LIBRARIES})
+target_link_libraries(CarSimTransformations ${catkin_LIBRARIES})
 add_dependencies(simulation ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 add_dependencies(car ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
