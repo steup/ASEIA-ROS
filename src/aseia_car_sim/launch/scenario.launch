@@ -4,4 +4,7 @@
     <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/$(arg scenario).ttt"/>
     <arg name="VREPPath" value="~/software/vrep"/>
   </include>
+  <node name="manager" pkg="aseia_base" type="manager">
+    <param name="transformations" value="aseia_car_sim::RoadTransformation"/>
+  </node>
 </launch>
