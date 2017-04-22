@@ -7,6 +7,7 @@
 #include <aseia_base/Publishers.h>
 
 #include <Transformation.h>
+#include <Transformations.h>
 #include <KnowledgeBase.h>
 #include <AbstractRegistry.h>
 #include <Channel.h>
@@ -138,6 +139,8 @@ class ChannelManager {
       }
     }
     ChannelManager() {
+      KnowledgeBase::registerTransformation(cast);
+      KnowledgeBase::registerTransformation(rescale);
       string transforms;
       if( ros::param::get("~transformations", transforms)) {
         mTransLoaderPtr.reset(new TransformationLoader("aseia_base", "Transformation"));
