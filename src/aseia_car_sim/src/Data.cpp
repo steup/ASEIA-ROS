@@ -33,7 +33,7 @@ namespace car {
 
   struct EventConfig : public BaseConfig {
     using TimeValueType = Value<double, 1>;
-    using PublisherIDValueType = Value<uint64_t, 1, 1, false>;
+    using PublisherIDValueType = Value<uint32_t, 1, 1, false>;
     using PositionValueType = Value<float, 2, 1, true>;
   };
 

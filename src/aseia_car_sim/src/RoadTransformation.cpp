@@ -15,19 +15,19 @@ namespace aseia_car_sim {
     private:
       uint32_t mInRef, mOutRef;
     public:
-      RoadToUTMTransformer(const Transformation* t, const EventType& out, const EventTypes& in)
-        : Transformer(t, out, in) {
+      RoadToUTMTransformer(const EventType& out, const EventTypes& in)
+        : Transformer(out, in) {
         mOutRef = out.attribute(Position::value())->scale().reference();
-        mInRef = in[0]->attribute(Position::value())->scale().reference();
+        mInRef = in[0].attribute(Position::value())->scale().reference();
       }
 
-      virtual bool check(const Events& events) const {
+      virtual bool check(const MetaEvent& event) const {
         return true;
       }
 
-      virtual MetaEvent operator()(const Events& events) {
+      virtual Events operator()(const MetaEvent& event) {
         ROS_INFO_STREAM("Executing Road to UTM Transform");
-        return MetaEvent();
+        return {};
       }
 
       virtual  void print(ostream& o) const {
@@ -37,7 +37,7 @@ namespace aseia_car_sim {
 
   class RoadToUTMTransformation : public Transformation {
     public:
-      RoadToUTMTransformation() : Transformation(EventID::any) {}
+      RoadToUTMTransformation() : Transformation(Transformation::Type::attribute, 2, EventID::any) {}
 
       virtual size_t arity() const { return 2; }
 
@@ -49,12 +49,12 @@ namespace aseia_car_sim {
       virtual bool check(const EventType& out, const EventTypes& in) const {
         bool fits = true;
         fits |= out.attribute(Position::value())->scale().reference()==1;
-        fits |= in[0]->attribute(Position::value())->scale().reference()==0;
+        fits |= in[0].attribute(Position::value())->scale().reference()==0;
         return fits;
       }
 
-      virtual TransPtr create(const EventType& out, const EventTypes& in) const {
-        return TransPtr(new RoadToUTMTransformer(this, out, in));
+      virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy) const {
+        return TransPtr(new RoadToUTMTransformer(out, in));
       }
 
       virtual void print(ostream& o) const {

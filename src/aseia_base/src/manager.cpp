@@ -49,8 +49,8 @@ class RosChannel : public Channel {
     list<ros::Subscriber> mSubs;
 
   public:
-    void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType* eTPtr) {
-        MetaEvent  e(*eTPtr);
+    void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType& eT) {
+        MetaEvent  e(eT);
         DeSerializer<decltype(msgPtr->event.begin())> d(msgPtr->event.begin(), msgPtr->event.end());
         d >> e;
         ROS_DEBUG_STREAM("Got Event to transform: " << e);
@@ -62,15 +62,15 @@ class RosChannel : public Channel {
     RosChannel(TransPtr&& trans) : Channel(move(trans)) {
       ros::NodeHandle n;
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
-      for(const EventType* in : mTrans->in()) {
-        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(*in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
+      for(const EventType& in : mTrans->in()) {
+        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
       }
     }
 
     RosChannel(RosChannel&& movee) : Channel(move(movee)), mPub(movee.mPub){
       ros::NodeHandle n;
-      for(const EventType* in : mTrans->in()) {
-        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(*in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
+      for(const EventType& in : mTrans->in()) {
+        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
       }
     }
 
@@ -125,11 +125,11 @@ class ChannelManager {
           KnowledgeBase::registerEventType(eT);
       } else {
         //TODO: pass Transformation and EventLists do discard existing transformations
-        for(const ConfiguredTransformation& t : KnowledgeBase::findTransforms(eT)) {
+        for(const CompositeTransformation& t : KnowledgeBase::findTransforms(eT)) {
             ROS_DEBUG_STREAM("Potential Transform: " << t);
             auto comp = [&t](const RosChannel& c){return c.trans() && t==*c.trans();};
             if(none_of(mChannels.find(eT).begin(), mChannels.find(eT).end(), comp)) {
-              RosChannel c(t.create());
+              RosChannel c(t.create(AbstractPolicy()));
               ROS_INFO_STREAM("Established Channel" << c);
               mChannels.registerType(eT, move(c));
             } else
