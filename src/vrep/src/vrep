@@ -11,7 +11,12 @@ def quit():
 
 if __name__=="__main__":
   rospy.init_node('V_REP')
-  vrepPath = os.path.expanduser(rospy.get_param('~path'))
+  env = os.environ
+  try:
+    vrepPath = env["VREP_ROOT"]
+  except KeyError:
+    rospy.logfatal("Environment Variable VREP_ROOT not defined");
+    os.exit(1);
   vrep = vrepPath+"/vrep"
   if( not os.access(vrep, os.F_OK or os.X_OK)):
     rospy.logfatal("V-REP executable missing or not executable: %s"%vrep)
@@ -25,23 +30,23 @@ if __name__=="__main__":
     except KeyError:
         plugin = "v_repExtRos"
     plugin="lib"+plugin+".so"
-    env = os.environ
-    plugins = []
-    for dir in os.environ["LD_LIBRARY_PATH"].split(":"):
-        if os.access(dir+"/"+plugin, os.F_OK):
-            plugins.append(dir+"/"+plugin)
-    for file in plugins:
-        rospy.loginfo("Found V-REP ROS Plugin at %s"%(file))
-    if(len(plugins)==0):
-        rospy.logfatal("No V-REP ROS plugin found!")
-        os._exit(1)
-    if(len(plugins)>1):
-        rospy.logfatal("Too many V-REP ROS plugins found!")
-        os._exit(1)
-    try:
-        os.symlink(plugins[0], vrepPath+"/"+plugin)
-    except:
-        pass
+    if not os.access(vrepPath+"/"+plugin, os.F_OK):
+        plugins = []
+        for dir in os.environ["LD_LIBRARY_PATH"].split(":"):
+            if os.access(dir+"/"+plugin, os.F_OK):
+                plugins.append(dir+"/"+plugin)
+        for file in plugins:
+            rospy.loginfo("Found V-REP ROS Plugin at %s"%(file))
+        if(len(plugins)==0):
+            rospy.logfatal("No V-REP ROS plugin found!")
+            os._exit(1)
+        if(len(plugins)>1):
+            rospy.logfatal("Too many V-REP ROS plugins found!")
+            os._exit(1)
+        try:
+            os.symlink(plugins[0], vrepPath+"/"+plugin)
+        except:
+            pass
     os.environ["LD_LIBRARY_PATH"]=vrepPath+":"+os.environ["LD_LIBRARY_PATH"]
     rospy.loginfo("Starting V-REP(%s) with scene %s"%(vrepPath+'/vrep', scene))
     rospy.logdebug("Environment:\n%s"%os.environ)
