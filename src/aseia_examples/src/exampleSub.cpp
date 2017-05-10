@@ -17,10 +17,10 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "AseiaTestSub");
 
   ROS_INFO_STREAM("started");
-  SensorEventSubscriber<ThisEvent> sub(print);
+  SensorEventSubscriber<ThisEvent> sub(print, 10);
 
   while(ros::ok())
     ros::spin();
-    
+
   return 0;
 }
