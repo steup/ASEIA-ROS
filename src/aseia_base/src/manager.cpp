@@ -9,7 +9,6 @@
 #include <Transformation.h>
 #include <Transformations.h>
 #include <KnowledgeBase.h>
-#include <AbstractRegistry.h>
 #include <Channel.h>
 #include <MetaEvent.h>
 #include <MetaFactory.h>
@@ -30,19 +29,13 @@ using boost::split;
 using boost::token_compress_on;
 using boost::is_any_of;
 
-string topic(EventID eID, FormatID fID) {
+static string topic(EventID eID, FormatID fID) {
   ostringstream os;
   os << "/sensors/" << eID << "/" << fID;
   return os.str();
 }
 
-string topic(const EventType& eT) { return topic(eT, eT); }
-
-/*bool topic(const string& s, EventID& eID, FormatID& fID) {
-  istringstream is(s);
-  is >> "/sensors/" >> eID >> "/" >> fID;
-  return true;
-}*/
+static string topic(const EventType& eT) { return topic(eT, eT); }
 
 class RosChannel : public Channel {
   protected:
@@ -86,7 +79,10 @@ class RosChannel : public Channel {
 
 class ChannelManager {
   private:
-    using ChannelRegistry = AbstractRegistry<RosChannel>;
+    using ChannelRegistry = std::multimap<pair<EventID, FormatID>, RosChannel>;
+    using ConstIter = ChannelRegistry::const_iterator;
+    using Iter = ChannelRegistry::const_iterator;
+    using Value = ChannelRegistry::value_type;
     using TransformationLoader = pluginlib::ClassLoader<Transformation>;
     using TransformationLoaderPtr = unique_ptr<TransformationLoader>;
     struct Deleter {
@@ -106,11 +102,10 @@ class ChannelManager {
     TransformationLoaderPtr mTransLoaderPtr;
     vector<TransformationPtr> mTransList;
   public:
-    bool providePublishers(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
+    bool provideChannels(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
       ostringstream os;
-      os << "Not yet implemented";
-      //for(const EventType& eT : mPubs)
-      //  os << topic(eT) << ":" << endl << eT;
+      for(const Value& v: mChannels)
+        os << v.second << endl;
       res.publishers = os.str();
       return true;
     }
@@ -119,25 +114,32 @@ class ChannelManager {
       EventType eT;
       DeSerializer<decltype(eTPtr->data.begin())> d(eTPtr->data.begin(), eTPtr->data.end());
       d >> eT;
-      //ROS_INFO_STREAM("Got new " << (eTPtr->type==aseia_base::EventType::PUBLISHER?"Publisher":"Subscriber") <<
-      //                " with EventType " << eT << "on base topic " << eTPtr->topic);
+
+
       if(eTPtr->type == aseia_base::EventType::PUBLISHER) {
           ROS_DEBUG_STREAM("Publisher: " << eT);
           KnowledgeBase::registerEventType(eT);
-      } else {
-        //TODO: pass Transformation and EventLists do discard existing transformations
-        for(const CompositeTransformation& t : KnowledgeBase::findTransforms(eT)) {
-            ROS_DEBUG_STREAM("Potential Transform: " << t);
-            auto comp = [&t](const RosChannel& c){return c.trans() && t==*c.trans();};
-            if(none_of(mChannels.find(eT).begin(), mChannels.find(eT).end(), comp)) {
-              RosChannel c(t.create(AbstractPolicy()));
-              ROS_INFO_STREAM("Established Channel" << c);
-              mChannels.registerType(eT, move(c));
-            } else
-              ROS_DEBUG_STREAM("Channel already existing");
+          // Scan all subscribers for new transformations
+      } else
+        for(const CompositeTransformation& cT : KnowledgeBase::findTransforms(eT)) {
+
+          ROS_DEBUG_STREAM("Potential Transform: " << cT);
+
+          auto comp = [&cT](const Value& v){return v.second.trans() && *v.second.trans() == cT;};
+
+          auto range = mChannels.equal_range(make_pair(EventID(eT), FormatID(eT)));
+          if(none_of(range.first, range.second, comp)) {
+
+            RosChannel c(cT.create(AbstractPolicy()));
+            ROS_INFO_STREAM("Established Channel" << c);
+
+            mChannels.emplace(piecewise_construct, make_tuple(EventID(eT), FormatID(eT)), make_tuple(move(c)));
+
+          } else
+            ROS_DEBUG_STREAM("Channel already existing");
         }
-      }
     }
+
     ChannelManager() {
       KnowledgeBase::registerTransformation(cast);
       KnowledgeBase::registerTransformation(rescale);
@@ -158,7 +160,7 @@ class ChannelManager {
       }
       ros::NodeHandle n;
       mSub = n.subscribe("/sensors/management", 100, &ChannelManager::handleNode, this);
-      mPubSrv = n.advertiseService("/sensors/publishers", &ChannelManager::providePublishers, this);
+      mPubSrv = n.advertiseService("/sensors/channels", &ChannelManager::provideChannels, this);
     }
 };
 
