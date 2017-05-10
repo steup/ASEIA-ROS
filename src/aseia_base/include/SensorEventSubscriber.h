@@ -23,9 +23,9 @@ class SensorEventSubscriber : public AbstractPubSub<SensorEvent>  {
     }
 
 public:
-  SensorEventSubscriber(void (*callback)(const SensorEvent&))
+  SensorEventSubscriber(void (*callback)(const SensorEvent&), size_t size=1)
     : Base(Base::Type::subscriber), mCallback(callback)
   {
-    mSub = ros::NodeHandle().subscribe(this->topic(), 1, &SensorEventSubscriber::unpack, this);
+    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this);
   }
 };
