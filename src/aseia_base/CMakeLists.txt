@@ -107,7 +107,7 @@ add_executable(manager src/manager.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(manager ${catkin_EXPORTED_TARGETS})
+add_dependencies(manager aseia_base_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(aseia_base_node
