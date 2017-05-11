@@ -49,6 +49,9 @@
         <param name="nearClip" value="1.0"/>
         <param name="farClip" value="100.0"/>
       </group>
+      <group ns="pose">
+        <param name="type"   value="pose"/>
+      </group>
     </group>
     <group ns="actuators">
       <group ns="steer">
@@ -77,7 +80,7 @@
     <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
       <param name="index"      value="$(arg index)"/>
       <param name="ctrls"      value="lane, acc, straight, maxSpeed, minSpeed"/>
-      <param name="sens"       value="lane, frontDist"/>
+      <param name="sens"       value="lane, frontDist, pose"/>
       <param name="acts"       value="speed, steer"/>
       <param name="refs"       value="speed, null, dist"/>
     </node>

@@ -31,17 +31,15 @@ namespace car {
       return numeric_limits<float>::signaling_NaN();
   }
 
-  struct EventConfig : public BaseConfig {
-    using TimeValueType = Value<double, 1>;
-    using PublisherIDValueType = Value<uint32_t, 1, 1, false>;
-    using PositionValueType = Value<float, 2, 1, true>;
-  };
 
   class LaneSensor : public Float {
     private:
+      struct LaneBaseConfig : public BaseConfig {
+        using TimeValueType = Value<double, 1>;
+        using PositionValueType = Value<float, 3>;
+      };
       using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
-      using Angle = Attribute<id::attribute::Angle, Value<float, 1>>;
-      using LaneEvent = BaseEvent<EventConfig>::append<Object>::type::append<Angle>::type;
+      using LaneEvent = BaseEvent<LaneBaseConfig>::append<Object>::type;
       LaneEvent mEvent;
       SensorEventPublisher<LaneEvent> mPub;
       VisionDepthSensor mSensor;
@@ -72,14 +70,50 @@ namespace car {
         }
         value = ( (float)( start + stop ) / mSensor.resolution[0] ) - 1;
         ROS_DEBUG_STREAM(*this);
-        mEvent.attribute(id::attribute::Time()) = { { { ros::Time::now().toSec(), 0 } } };
-        mEvent.attribute(id::attribute::Position()) = { {{ value, 0 }}, {{ 0 }} };
+        mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
+        mEvent.attribute(id::attribute::Position()).value()(1,0) = { value, 0 };
         mPub.publish(mEvent);
         return true;
       }
 
       virtual void print(ostream& o) const {
         o << "Lane Position of sensor " << mSensor.handle << ": " << value;
+      }
+  };
+
+  class PoseSensor : public Data {
+    private:
+      struct PoseBaseConfig : public BaseConfig {
+        using TimeValueType = Value<double, 1>;
+        using PositionValueType = Value<float, 3>;
+        using PositionScale = Scale<ratio<1>, 1>;
+      };
+      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
+      using Angle  = Attribute<id::attribute::Angle, Value<float, 3>>;
+      using PoseEvent = BaseEvent<PoseBaseConfig>::append<Object>::type::append<Angle>::type;
+      PoseEvent mEvent;
+      SensorEventPublisher<PoseEvent> mPub;
+    public:
+      PoseSensor(const std::string& path, const Car& car)
+        : Data("Pose", car, true)
+      {
+        ROS_INFO_STREAM("Add pose sensor for car " << car.index());
+        mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
+        mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();
+        update();
+      }
+
+      virtual bool update() {
+        //Implement pose query
+        ROS_DEBUG_STREAM(*this);
+        mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
+        mEvent.attribute(id::attribute::Position()).value() = {{{0, 0}}, {{0, 0}}, {{ 0, 0 }}};
+        mPub.publish(mEvent);
+        return true;
+      }
+
+      virtual void print(ostream& o) const {
+        o << "Pose sensor of car " << mCar.index();
       }
   };
 
@@ -146,8 +180,8 @@ namespace car {
           return DataPtr(new Float(path ,car));
         if(type == "visionDistance")
           return DataPtr(new VisionDistanceSensor(path ,car));
-        if(type == "proxDistance")
-          return DataPtr(new ProximityDistanceSensor(path ,car));
+        if(type == "pose")
+          return DataPtr(new PoseSensor(path ,car));
     }
     return DataPtr();
   }
