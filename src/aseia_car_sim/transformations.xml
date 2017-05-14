@@ -1,7 +1,7 @@
 <library path="lib/libCarSimTransformations">
-  <class type="aseia_car_sim::RoadToUTMTransformation" base_class_type="Transformation">
+  <class type="aseia_car_sim::UTMToRoadTransformation" base_class_type="Transformation">
   <description>
-    An example transformation from Road Coordinates to UTM coordinates
+    Transformation of UTM-Coordinates to NURBS-based Road coordinates
   </description>
   </class>
 </library>
