@@ -98,6 +98,7 @@ class ChannelManager {
     using TransformationPtr = unique_ptr<Transformation, Deleter>;
     ros::Subscriber mSub;
     ros::ServiceServer mPubSrv;
+    ros::ServiceServer mTransSrv;
     ChannelRegistry mChannels;
     TransformationLoaderPtr mTransLoaderPtr;
     vector<TransformationPtr> mTransList;
@@ -106,6 +107,13 @@ class ChannelManager {
       ostringstream os;
       for(const Value& v: mChannels)
         os << v.second << endl;
+      res.publishers = os.str();
+      return true;
+    }
+
+    bool transforms(aseia_base::Publishers::Request& req, aseia_base::Publishers::Response& res) {
+      ostringstream os;
+      KnowledgeBase::print(os);
       res.publishers = os.str();
       return true;
     }
@@ -120,7 +128,9 @@ class ChannelManager {
           ROS_DEBUG_STREAM("Publisher: " << eT);
           KnowledgeBase::registerEventType(eT);
           // Scan all subscribers for new transformations
-      } else
+      } else {
+        ROS_DEBUG_STREAM("Subscriber: " << eT);
+        ROS_DEBUG_STREAM("Searching for Transforms");
         for(const CompositeTransformation& cT : KnowledgeBase::findTransforms(eT)) {
 
           ROS_DEBUG_STREAM("Potential Transform: " << cT);
@@ -138,6 +148,7 @@ class ChannelManager {
           } else
             ROS_DEBUG_STREAM("Channel already existing");
         }
+      }
     }
 
     ChannelManager() {
@@ -152,6 +163,7 @@ class ChannelManager {
           try {
             mTransList.emplace_back(mTransLoaderPtr->createUnmanagedInstance(transName), Deleter(*mTransLoaderPtr, transName));
             KnowledgeBase::registerTransformation(*mTransList.back());
+            ROS_INFO_STREAM("Loaded and registered " << transName);
           } catch(const pluginlib::LibraryLoadException& e) {
             ROS_ERROR_STREAM("Error loading library for transformation " << transName << ": " << e.what());
           } catch(const pluginlib::CreateClassException& e) {
@@ -161,6 +173,7 @@ class ChannelManager {
       ros::NodeHandle n;
       mSub = n.subscribe("/sensors/management", 100, &ChannelManager::handleNode, this);
       mPubSrv = n.advertiseService("/sensors/channels", &ChannelManager::provideChannels, this);
+      mTransSrv = n.advertiseService("/sensors/transforms", &ChannelManager::transforms, this);
     }
 };
 
