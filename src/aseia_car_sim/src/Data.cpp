@@ -37,6 +37,7 @@ namespace car {
       struct LaneBaseConfig : public BaseConfig {
         using TimeValueType = Value<double, 1>;
         using PositionValueType = Value<float, 3>;
+        using PositionScale = Scale<std::ratio<1>, 1>;
       };
       using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using LaneEvent = BaseEvent<LaneBaseConfig>::append<Object>::type;
@@ -86,7 +87,6 @@ namespace car {
       struct PoseBaseConfig : public BaseConfig {
         using TimeValueType = Value<double, 1>;
         using PositionValueType = Value<float, 3>;
-        using PositionScale = Scale<ratio<1>, 1>;
       };
       using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using Angle  = Attribute<id::attribute::Angle, Value<float, 3>>;

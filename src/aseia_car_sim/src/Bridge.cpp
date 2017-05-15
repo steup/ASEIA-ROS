@@ -16,18 +16,15 @@ using namespace ros;
 
 map<string, Publisher> pubs;
 
-const uint32_t UTM = 1;
-
 struct UTMBaseConfig : public BaseConfig {
   using TimeValueType = Value<double, 1>;
   using PositionValueType = Value<float, 3>;
-  using PositionScale = Scale<std::ratio<1>, UTM>;
 };
 
 struct RoadBaseConfig : public BaseConfig {
   using TimeValueType = Value<double, 1>;
-  using PublisherIDValueType = Value<uint32_t, 1, 1, false>;
-  using PositionValueType = Value<float, 3, 1, true>;
+  using PositionValueType = Value<float, 3>;
+  using PositionScale = Scale<std::ratio<1>, 1>;
 };
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
