@@ -19,10 +19,12 @@ class NurbsPublisher {
       using PositionScale = Scale<std::ratio<1>, 1>;
     };
     using Ref = Attribute<Reference, Value<float, 3>, Meter>;
-    using NurbData = Attribute<Nurbs, Value<float, 1, 1, false>, Dimensionless>;
+    using Ori = Attribute<Orientation, Value<float, 3>, Radian>;
+    using NurbData = Attribute<Nurbs, Value<float, 100, 1, false>, Meter, Scale<std::ratio<1>, 1>>;
     using NurbsReference = BaseEvent<NurbsBaseConfig>
                             ::append<Ref>::type
-                            ::append<NurbData>::type;
+                            ::append<NurbData>::type
+                            ::append<Ori>::type;
     ros::Timer mTimer;
     SensorEventPublisher<NurbsReference> mPub;
     NurbsReference mRef;

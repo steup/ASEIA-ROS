@@ -30,7 +30,7 @@ struct RoadBaseConfig : public BaseConfig {
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
 using AngAttr = Attribute<Angle, Value<float, 3>>;
 using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<AngAttr>::type;
-using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type;
+using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<AngAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
