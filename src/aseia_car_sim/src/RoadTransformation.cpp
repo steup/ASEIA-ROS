@@ -5,6 +5,7 @@
 #include <Transformation.h>
 
 #include <MetaEvent.h>
+#include <IO.h>
 
 #include <iostream>
 
@@ -70,25 +71,44 @@ namespace aseia_car_sim {
       }
   };
 
-  class UTMToRoadTransformation : public Transformation {
+  class UTMToRoad : public Transformation {
     public:
-      UTMToRoadTransformation() : Transformation(Transformation::Type::attribute, 2, EventID::any) {}
-
-      virtual size_t arity() const { return 2; }
+      UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {}
 
       virtual EventIDs in(EventID goal) const {
-        EventID ref({Position::value(), Time::value(), Reference::value(), Nurbs::value()});
+        EventID ref({Position::value(), Time::value(), Orientation::value(), Reference::value(), Nurbs::value()});
+        ROS_INFO_STREAM("Querying UTMToRoadTransformation for appropriate Input EventIDs: [" << goal << ", " << ref << "]");
         return EventIDs({goal, ref});
       };
 
-      virtual bool check(const EventType& out, const EventTypes& in) const {
-        if(in.size()<2)
-          return false;
-        uint32_t outRef    = out.attribute(Position::value())->scale().reference();
-        uint32_t inRef     = in[0].attribute(Position::value())->scale().reference();
-        uint32_t refOutRef = in[1].attribute(Position::value())->scale().reference();
-        uint32_t refInRef  = in[1].attribute(Reference::value())->scale().reference();
-        return outRef == refOutRef && inRef == refInRef && inRef != outRef;
+      virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
+        if(provided==EventType())
+          return {};
+        const AttributeType* goalTimeAT = goal.attribute(Time::value());
+        const AttributeType* goalPosAT = goal.attribute(Position::value());
+        const AttributeType* providedPosAT = provided.attribute(Position::value());
+        if(!goalPosAT || !goalTimeAT || !providedPosAT
+           || goalPosAT->scale().reference() == providedPosAT->scale().reference())
+          return {};
+        uint32_t oriDim, nurbsDim=100;
+        ::id::type::ID type = ValueType(goalPosAT->value()).typeId();
+        if(goalPosAT->value().rows() == 3)
+          oriDim = 3;
+        else
+          oriDim = 1;
+
+        EventType orig = goal;
+        orig.attribute(Position::value())->scale().reference(providedPosAT->scale().reference());
+        //todo handle possible orientation
+        EventType reference;
+        reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
+        reference.add(AttributeType(Orientation::value(), ValueType(type, oriDim, 1, true), providedPosAT->scale(), Radian()));
+        reference.add(*goalTimeAT);
+        reference.add(AttributeType(Nurbs::value(), ValueType(type, nurbsDim, 1, false), goalPosAT->scale(), providedPosAT->unit()));
+
+        auto input = {orig, reference};
+        ROS_INFO_STREAM("UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
+        return input;
       }
 
       virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy) const {
@@ -102,4 +122,4 @@ namespace aseia_car_sim {
 
 }
 
-PLUGINLIB_EXPORT_CLASS(aseia_car_sim::UTMToRoadTransformation, Transformation)
+PLUGINLIB_EXPORT_CLASS(aseia_car_sim::UTMToRoad, Transformation)
