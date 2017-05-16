@@ -57,14 +57,8 @@ class RosChannel : public Channel {
       ros::NodeHandle n;
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
       for(const EventType& in : mTrans->in()) {
-        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
-      }
-    }
-
-    RosChannel(RosChannel&& movee) : Channel(move(movee)), mPub(movee.mPub){
-      ros::NodeHandle n;
-      for(const EventType& in : mTrans->in()) {
-        mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(in), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, in)));
+        for(const EventType& subType : KnowledgeBase::findCompatible(in))
+          mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(subType), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, subType)));
       }
     }
 
@@ -139,12 +133,8 @@ class ChannelManager {
 
           auto range = mChannels.equal_range(make_pair(EventID(eT), FormatID(eT)));
           if(none_of(range.first, range.second, comp)) {
-
-            RosChannel c(cT.create(AbstractPolicy()));
-            ROS_INFO_STREAM("Established Channel" << c);
-
-            mChannels.emplace(piecewise_construct, make_tuple(EventID(eT), FormatID(eT)), make_tuple(move(c)));
-
+            auto it = mChannels.emplace(make_pair(EventID(eT), FormatID(eT)), cT.create(AbstractPolicy()));
+            ROS_INFO_STREAM("Established Channel" << it->second);
           } else
             ROS_DEBUG_STREAM("Channel already existing");
         }
