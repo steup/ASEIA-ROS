@@ -1,5 +1,10 @@
 <launch>
 	<arg name="debug" default="false"/>
-  <node name="AseiaManager" pkg="aseia_base" type="manager" unless="$(arg debug)"/>
-  <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(arg debug)" launch-prefix="gdbserver localhost:1234 "/>
+	<arg name="transformations" default=""/>
+  <node name="AseiaManager" pkg="aseia_base" type="manager" unless="$(arg debug)">
+    <param name="transformations" value="$(arg transformations)"/>
+  </node>
+  <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(arg debug)" launch-prefix="gdbserver localhost:1234 ">
+    <param name="transformations" value="$(arg transformations)"/>
+  </node>
 </launch>
