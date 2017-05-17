@@ -1,14 +1,19 @@
+#include "Attributes.h"
+
 #include <string>
 #include <map>
 
 #include <ros/ros.h>
 #include <tf/transform_datatypes.h>
 #include <std_msgs/String.h>
+#include <visualization_msgs/Marker.h>
 #include <nav_msgs/Odometry.h>
 
 #include <SensorEventSubscriber.h>
 #include <BaseEvent.h>
 #include <Attribute.h>
+
+namespace aseia_car_sim {
 
 using namespace std;
 using namespace id::attribute;
@@ -65,10 +70,64 @@ void handleRoadInput(const RoadPoseEvent& e) {
   it->second.publish(msg);
 }
 
+struct NurbsBaseConfig : public BaseConfig {
+  using TimeValueType = Value<double, 1>;
+  using PositionValueType = Value<float, 3>;
+  using PositionScale = Scale<std::ratio<1>, 1>;
+};
+using Ref = Attribute<Reference, Value<float, 3>, Meter>;
+using Ori = Attribute<Orientation, Value<float, 3>, Radian>;
+using NurbData = Attribute<Nurbs, Value<float, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
+using RoadEvent = BaseEvent<NurbsBaseConfig>
+                        ::append<Ref>::type
+                        ::append<NurbData>::type
+                        ::append<Ori>::type;
+
+void handleRoad(const RoadEvent& e) {
+  string topic = "/roads/1";
+  auto it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<visualization_msgs::Marker>(topic, 1))).first;
+  }
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time(e.attribute(id::attribute::Time()).value()(0,0).value());
+  marker.ns = "roads";
+  marker.id = 1;
+  marker.type = visualization_msgs::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.position.x = e.attribute(Reference()).value()(0,0).value();
+  marker.pose.position.y = e.attribute(Reference()).value()(1,0).value();
+  marker.pose.position.z = e.attribute(Reference()).value()(2,0).value();
+  marker.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(e.attribute(Orientation()).value()(0,0).value(),
+                                                                    e.attribute(Orientation()).value()(1,0).value(),
+                                                                    e.attribute(Orientation()).value()(2,0).value());
+  marker.color.a = 1.0;
+  marker.color.b = 1.0;
+  marker.color.g = 1.0;
+  marker.color.r = 1.0;
+  // todo set line width
+  marker.scale.x = 1.0;
+  //todo add points from nurb
+  geometry_msgs::Point p;
+  p.x = 0.0;
+  p.y = 0.0;
+  p.z = 0.0;
+  marker.points.push_back(p);
+  p.x = 1.0;
+  p.y = 1.0;
+  p.z = 1.0;
+  marker.points.push_back(p);
+  it->second.publish(marker);
+}
+}
+
 int main(int argc, char** argv) {
   ros::init(argc, argv, "aseia_bridge");
-  SensorEventSubscriber<PoseEvent> poseSub(handlePoseInput);
-  SensorEventSubscriber<RoadPoseEvent> roadSub(handleRoadInput);
+  SensorEventSubscriber<aseia_car_sim::PoseEvent> poseSub(aseia_car_sim::handlePoseInput);
+  SensorEventSubscriber<aseia_car_sim::RoadPoseEvent> roadPoseSub(aseia_car_sim::handleRoadInput);
+  SensorEventSubscriber<aseia_car_sim::RoadEvent> roadSub(aseia_car_sim::handleRoad);
   while(ros::ok()) ros::spin();
   return 0;
 }
