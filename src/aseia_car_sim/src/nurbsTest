@@ -86,6 +86,9 @@ def N(i, n, u):
 if __name__=="__main__":
     V = np.array(v)
     print "Nurbs Test"
+    print "#v: %i"%len(v)
+    print "#parm: %i"%len(parm)
+    print "#curv: %i"%len(curv)
     p=[]
     for i in range(0, 100):
         point = np.zeros(3);
