@@ -6,7 +6,7 @@
     <arg name="VREPPath" value="~/software/vrep"/>
   </include>
   <include file="$(find aseia_base)/launch/manager.launch">
-    <param name="transformations" value="aseia_car_sim::UTMToRoadTransformation"/>
+    <param name="transformations" value="aseia_car_sim::UTMToRoad"/>
     <param name="debug" value="$(arg debug)"/>
   </include>
 </launch>

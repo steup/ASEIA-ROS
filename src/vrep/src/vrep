@@ -52,4 +52,4 @@ if __name__=="__main__":
     rospy.logdebug("Environment:\n%s"%os.environ)
     vrep = subprocess.Popen([vrepPath+"/vrep", scene])
     rospy.on_shutdown(quit)
-    rospy.spin()
+    vrep.wait()
