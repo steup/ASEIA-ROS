@@ -110,6 +110,30 @@ void handleRoad(const RoadEvent& e) {
   // todo set line width
   marker.scale.x = 1.0;
   //todo add points from nurb
+
+  auto f=[limits](size_t i, size_t n, float u) {
+      return (u-limits(i))/(limits(i+n)-limits(i));
+  }
+  auto g=[limits](size_t i, size_t n, float u) {
+      return (limits(i+n)-u)/(limits(i+n)-limits(i));
+  }
+  auto N=[limits](size_t i, size_t n, float u):
+      if(n==0) {
+          if(u >= limits(i) && u < limits(i+1)):
+              return 1;
+          else
+              return 0;
+      } else
+          return f(i,n, u)*N(i, n-1, u) + g(i+1,n, u)*N(i+1, n-1, u);
+  }
+  p=[]
+  for i in range(0, 100):
+      auto point = np.zeros(3);
+      u = float(i)/100
+      size_t j=0;
+      for(const auto& p : P)
+          point=point+N(j,3,u)*P(j)
+      marker.points.push_back(point);
   geometry_msgs::Point p;
   p.x = 0.0;
   p.y = 0.0;
