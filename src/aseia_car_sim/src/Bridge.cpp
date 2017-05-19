@@ -13,11 +13,13 @@
 #include <BaseEvent.h>
 #include <Attribute.h>
 
+
 namespace aseia_car_sim {
 
 using namespace std;
 using namespace id::attribute;
 using namespace ros;
+using namespace Eigen;
 
 map<string, Publisher> pubs;
 
@@ -108,41 +110,36 @@ void handleRoad(const RoadEvent& e) {
   marker.color.g = 1.0;
   marker.color.r = 1.0;
   // todo set line width
-  marker.scale.x = 1.0;
+  marker.scale.x = 0.01;
   //todo add points from nurb
-
-  auto f=[limits](size_t i, size_t n, float u) {
+  using Vector3 = Value<float, 3, 1, false>;
+  const auto& nurbData = e.attribute(Nurbs()).value();
+  const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
+  const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
+  const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
+  auto limits = nurbData.col(dim).segment(1,lSize+1);
+  auto f=[&limits](size_t i, size_t n, float u) {
       return (u-limits(i))/(limits(i+n)-limits(i));
-  }
-  auto g=[limits](size_t i, size_t n, float u) {
+  };
+  auto g=[&limits, &f](size_t i, size_t n, float u) {
       return (limits(i+n)-u)/(limits(i+n)-limits(i));
-  }
-  auto N=[limits](size_t i, size_t n, float u):
-      if(n==0) {
-          if(u >= limits(i) && u < limits(i+1)):
-              return 1;
-          else
-              return 0;
-      } else
+  };
+  std::function<float(size_t,size_t,float)> N=[&limits, &f, &g, &N](size_t i, size_t n, float u) -> float {
+      if(n==0)
+          return (u >= limits(i) && u < limits(i+1))?1.0f:0.0f;
+      else
           return f(i,n, u)*N(i, n-1, u) + g(i+1,n, u)*N(i+1, n-1, u);
+  };
+  for(size_t i=0; i<100; i++) {
+      auto point = Vector3::Zeros();
+      for(size_t j=0; j<pSize; j++)
+          point+=N(j,3,i/100.0f)*Vector3(nurbData.block(j+1, 0, 1, dim).transpose());
+      geometry_msgs::Point temp;
+      temp.x=point(0);
+      temp.y=point(1);
+      temp.z=point(2);
+      marker.points.push_back(temp);
   }
-  p=[]
-  for i in range(0, 100):
-      auto point = np.zeros(3);
-      u = float(i)/100
-      size_t j=0;
-      for(const auto& p : P)
-          point=point+N(j,3,u)*P(j)
-      marker.points.push_back(point);
-  geometry_msgs::Point p;
-  p.x = 0.0;
-  p.y = 0.0;
-  p.z = 0.0;
-  marker.points.push_back(p);
-  p.x = 1.0;
-  p.y = 1.0;
-  p.z = 1.0;
-  marker.points.push_back(p);
   it->second.publish(marker);
 }
 }
