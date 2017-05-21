@@ -139,7 +139,7 @@ void handleRoad(const RoadEvent& e) {
   auto f=[&limits](size_t i, size_t n, float u) {
       return (u-limits(i))/(limits(i+n)-limits(i));
   };
-  auto g=[&limits, &f](size_t i, size_t n, float u) {
+  auto g=[&limits](size_t i, size_t n, float u) {
       return (limits(i+n)-u)/(limits(i+n)-limits(i));
   };
   std::function<float(size_t,size_t,float)> N=[&limits, &f, &g, &N](size_t i, size_t n, float u) -> float {
