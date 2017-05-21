@@ -85,6 +85,19 @@ using RoadEvent = BaseEvent<NurbsBaseConfig>
                         ::append<NurbData>::type
                         ::append<Ori>::type;
 
+template<typename T>
+static ostream& operator<<(ostream& o, const vector<T>& v) {
+  o << "[";
+  for(const auto& elem : v)
+    o << elem << " ";
+  return o << "]";
+}
+
+static ostream& operator<<(ostream& o, const geometry_msgs::Point& p) {
+  return o << "(" << p.x << " " << p.y << " " << p.z << ")" << endl;
+}
+
+
 void handleRoad(const RoadEvent& e) {
   string topic = "/roads/1";
   auto it = pubs.find(topic);
@@ -112,12 +125,17 @@ void handleRoad(const RoadEvent& e) {
   // todo set line width
   marker.scale.x = 0.01;
   //todo add points from nurb
-  using Vector3 = Value<float, 3, 1, false>;
+  using Vector3T = Value<float, 1, 3, false>;
   const auto& nurbData = e.attribute(Nurbs()).value();
   const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
   const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
   const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
   auto limits = nurbData.col(dim).segment(1,lSize+1);
+  ROS_DEBUG_STREAM("NURBS: dim: " << dim);
+  ROS_DEBUG_STREAM("NURBS: pSize: " << pSize);
+  ROS_DEBUG_STREAM("NURBS: lSize: " << lSize);
+  ROS_DEBUG_STREAM("NURBS: limits: " << endl << limits);
+  ROS_DEBUG_STREAM("NURBS: points: " << endl << nurbData);
   auto f=[&limits](size_t i, size_t n, float u) {
       return (u-limits(i))/(limits(i+n)-limits(i));
   };
@@ -130,16 +148,27 @@ void handleRoad(const RoadEvent& e) {
       else
           return f(i,n, u)*N(i, n-1, u) + g(i+1,n, u)*N(i+1, n-1, u);
   };
-  for(size_t i=0; i<100; i++) {
-      auto point = Vector3::Zeros();
-      for(size_t j=0; j<pSize; j++)
-          point+=N(j,3,i/100.0f)*Vector3(nurbData.block(j+1, 0, 1, dim).transpose());
+  ostringstream os;
+  for(size_t i=4; i<97; i++) {
+      auto point = Vector3T::Zeros();
+      os << setprecision(3);
+      for(size_t j=0; j<pSize; j++) {
+          float n = N(j,3,i/100.0f);
+          auto v = Vector3T(nurbData.block(j+1, 0, 1, dim));
+          if(n>0.001) {
+            os << "n(" << (i/100.0) << ", " << j << "): "
+               << n << " * " << v;
+          }
+          point+=n*v;
+      }
       geometry_msgs::Point temp;
-      temp.x=point(0);
-      temp.y=point(1);
-      temp.z=point(2);
+      temp.x=point(0,0);
+      temp.y=point(0,1);
+      temp.z=point(0,2);
       marker.points.push_back(temp);
   }
+  ROS_DEBUG_STREAM("NURBS intermediate:" << endl << os.str());
+  ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);
   it->second.publish(marker);
 }
 }

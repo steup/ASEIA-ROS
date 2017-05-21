@@ -89,18 +89,22 @@ if __name__=="__main__":
     print "#v: %i"%len(v)
     print "#parm: %i"%len(parm)
     print "#curv: %i"%len(curv)
-    p=[]
+    curve=[]
     for i in range(0, 100):
         point = np.zeros(3);
         u = float(i)/100
         for j in range(0,len(curv)):
-            point=point+N(j,3,u)*V[curv[j]-1]
-        p.append(point)
+            n = N(j,3,u)
+            p= V[curv[j]-1]
+            if n !=0:
+                print "n(%3f, %2i): %3f*(%3f %3f %3f)"%(u, j, n, p[0], p[1], p[2])
+            point=point+n*p
+        curve.append(point)
     fig, ax = plt.subplots()
     ax = fig.gca(projection='3d')
     x,y,z = zip(*v)
-    print p
-    x2,y2,z2 = zip(*p[5:-5])
+    print curve
+    x2,y2,z2 = zip(*curve[5:-5])
     #ax.plot(x, y, z)
     ax.plot(x2, y2, z2)
     ax.set_xlim(-1, 1.0)
