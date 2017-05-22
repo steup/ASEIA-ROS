@@ -9,6 +9,8 @@
 
 #include <ros/ros.h>
 
+#include <Eigen/Geometry>
+
 namespace car {
 
   using namespace std;
@@ -88,14 +90,16 @@ namespace car {
         using TimeValueType = Value<double, 1>;
         using PositionValueType = Value<float, 3>;
       };
-      using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
-      using Angle  = Attribute<id::attribute::Angle, Value<float, 3>>;
-      using PoseEvent = BaseEvent<PoseBaseConfig>::append<Object>::type::append<Angle>::type;
+      using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
+      using Ori  = Attribute<id::attribute::Orientation, Value<float, 4>, Radian>;
+      using PoseEvent = BaseEvent<PoseBaseConfig>::append<ObjectID>::type::append<Ori>::type;
       PoseEvent mEvent;
       SensorEventPublisher<PoseEvent> mPub;
+      Object mCarBody;
     public:
       PoseSensor(const std::string& path, const Car& car)
-        : Data("Pose", car, true)
+        : Data("Pose", car, true),
+          mCarBody("CarBody", car.index())
       {
         ROS_INFO_STREAM("Add pose sensor for car " << car.index());
         mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
@@ -105,9 +109,16 @@ namespace car {
 
       virtual bool update() {
         //Implement pose query
+        const Object::Position pos = mCarBody.position();
+        const Object::Orientation mod = Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitX()) *
+                                        Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitY()) *
+                                        Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());
+        const Object::Orientation ori = mCarBody.orientation() * mod;
         ROS_DEBUG_STREAM(*this);
         mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
-        mEvent.attribute(id::attribute::Position()).value() = {{{0, 0}}, {{0, 0}}, {{ 0, 0 }}};
+        mEvent.attribute(id::attribute::Position()).value() = {{{pos[0], 0}}, {{pos[1], 0}}, {{ pos[2], 0 }}};
+        mEvent.attribute(id::attribute::Orientation()).value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
+        ROS_DEBUG_STREAM("Car" << mCar.index() << " Orientation: (" << ori.x() << ", " << ori.y() << ", " << ori.z() << ", " << ori.w() <<")");
         mPub.publish(mEvent);
         return true;
       }

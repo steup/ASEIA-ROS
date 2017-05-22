@@ -6,6 +6,8 @@
 #include <Unit.h>
 #include <SensorEventPublisher.h>
 
+#include <Eigen/Geometry>
+
 using namespace ::id::attribute;
 using namespace std;
 
@@ -19,7 +21,7 @@ class NurbsPublisher {
       using PositionScale = Scale<std::ratio<1>, 1>;
     };
     using Ref = Attribute<Reference, Value<float, 3>, Meter>;
-    using Ori = Attribute<Orientation, Value<float, 3>, Radian>;
+    using Ori = Attribute<Orientation, Value<float, 4>, Radian>;
     using NurbData = Attribute<Nurbs, Value<float, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
     using NurbsReference = BaseEvent<NurbsBaseConfig>
                             ::append<Ref>::type
@@ -41,13 +43,17 @@ class NurbsPublisher {
                                           {{0, 0}},
                                           {{0, 0}}
                                           };
-      mRef.attribute(Reference()).value()={{{0, 0}},
-                                           {{0, 0}},
-                                           {{0, 0}}
+      mRef.attribute(Reference()).value()={{{0.0f, 0}},
+                                           {{0.0f, 0}},
+                                           {{-100.0f, 0}}
                                           };
-      mRef.attribute(Orientation()).value()={{{0,0}},
-                                             {{0, 0}},
-                                             {{0, 0}}
+      Eigen::Quaternionf q =   Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitX())
+                             * Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitY())
+                             * Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitZ());
+      mRef.attribute(Orientation()).value()={{{q.x(), 0}},
+                                             {{q.y(), 0}},
+                                             {{q.z(), 0}},
+                                             {{q.w(), 0}}
                                             };
       mRef.attribute(Nurbs()).value()={{{   3       }, {  27       }, { 31       }, {5.0     }},
                                        {{-175.381989}, {- 85.089470}, {128.044647}, {0.000000}},

@@ -35,9 +35,9 @@ struct RoadBaseConfig : public BaseConfig {
 };
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
-using AngAttr = Attribute<Angle, Value<float, 3>>;
-using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<AngAttr>::type;
-using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<AngAttr>::type;
+using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
+using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
+using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
@@ -50,8 +50,11 @@ void handlePoseInput(const PoseEvent& e) {
   nav_msgs::Odometry msg;
   msg.pose.pose.position.x = e.attribute(Position()).value()(0,0).value();
   msg.pose.pose.position.y = e.attribute(Position()).value()(1,0).value();
-  msg.pose.pose.position.z = 0;
-  msg.pose.pose.orientation = tf::createQuaternionMsgFromYaw(0.0f);
+  msg.pose.pose.position.z = e.attribute(Position()).value()(2,0).value();
+  msg.pose.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value(),
+  msg.pose.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value(),
+  msg.pose.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value(),
+  msg.pose.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value(),
   msg.header.frame_id = "map";
   msg.child_frame_id = "car"+to_string(car);
   it->second.publish(msg);
@@ -78,7 +81,7 @@ struct NurbsBaseConfig : public BaseConfig {
   using PositionScale = Scale<std::ratio<1>, 1>;
 };
 using Ref = Attribute<Reference, Value<float, 3>, Meter>;
-using Ori = Attribute<Orientation, Value<float, 3>, Radian>;
+using Ori = Attribute<Orientation, Value<float, 4>, Radian>;
 using NurbData = Attribute<Nurbs, Value<float, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
 using RoadEvent = BaseEvent<NurbsBaseConfig>
                         ::append<Ref>::type
@@ -115,9 +118,10 @@ void handleRoad(const RoadEvent& e) {
   marker.pose.position.x = e.attribute(Reference()).value()(0,0).value();
   marker.pose.position.y = e.attribute(Reference()).value()(1,0).value();
   marker.pose.position.z = e.attribute(Reference()).value()(2,0).value();
-  marker.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(e.attribute(Orientation()).value()(0,0).value(),
-                                                                    e.attribute(Orientation()).value()(1,0).value(),
-                                                                    e.attribute(Orientation()).value()(2,0).value());
+  marker.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value(),
+  marker.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value(),
+  marker.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value(),
+  marker.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value(),
   marker.color.a = 1.0;
   marker.color.b = 1.0;
   marker.color.g = 1.0;
