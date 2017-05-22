@@ -1,0 +1,12 @@
+# Blender MTL File: 'RoadSegmentAndHillAndCurve.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 17.647059
+Ka 0.000000 0.000000 0.000000
+Kd 0.640000 0.640000 0.640000
+Ks 0.100000 0.100000 0.100000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd seamless_sand___d648_by_agf81-d5loea7.jpg
