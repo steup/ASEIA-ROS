@@ -1,7 +1,7 @@
-# Blender MTL File: 'RoadSegmentAndHillAndCurve.blend'
+# Blender MTL File: 'Hill2.blend'
 # Material Count: 1
 
-newmtl Road
+newmtl Material
 Ns 17.647059
 Ka 0.000000 0.000000 0.000000
 Kd 0.640000 0.640000 0.640000
