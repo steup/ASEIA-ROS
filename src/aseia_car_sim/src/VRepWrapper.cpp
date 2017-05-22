@@ -108,6 +108,26 @@ static Object::Position getPosition(int handle, int reference) {
   return Object::Position(x, y, z);
 }
 
+static Object::Orientation getOrientation(int handle, int reference) {
+  static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectPose >( "/vrep/simRosGetObjectPose", true);
+  simRosGetObjectPose pose;
+  pose.request.handle = handle;
+  pose.request.relativeToObjectHandle = reference;
+  try {
+    checkedCall(srv, pose);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << "Cannot get position of object " << pose.request.handle << " - " << __FILE__ << ":" << __LINE__;
+  }
+  float x,y,z,w;
+  x = pose.response.pose.pose.orientation.x;
+  y = pose.response.pose.pose.orientation.y;
+  z = pose.response.pose.pose.orientation.z;
+  w = pose.response.pose.pose.orientation.w;
+  return Object::Orientation(w, x, y, z);
+}
+
+const Object Object::world;
+
 static void getVisionDepthData(simRosGetVisionSensorDepthBuffer& buffer) {
     static ros::ServiceClient srv = ros::NodeHandle().serviceClient<simRosGetVisionSensorDepthBuffer>("/vrep/simRosGetVisionSensorDepthBuffer", true);
   try {
@@ -132,6 +152,10 @@ static void getProximityDistance(simRosReadProximitySensor& buffer) {
 
   Object::Position Object::position(const Object& reference) const throw(Exception) {
     return getPosition(handle, reference.handle);
+  }
+
+  Object::Orientation Object::orientation(const Object& reference) const throw(Exception) {
+    return getOrientation(handle, reference.handle);
   }
 
   AngularJoint::AngularJoint(std::string name, int index) throw(Exception)

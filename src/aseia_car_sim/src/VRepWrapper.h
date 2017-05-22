@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace vrep {
 
@@ -40,12 +41,12 @@ namespace vrep {
       Object() {}
     public:
       using Position = Eigen::Vector3f;
-      using Orientation = Eigen::Matrix<float, 3, 3>;
+      using Orientation = Eigen::Quaternionf;
       const int handle = -1;
       static const Object world;
       Object(std::string name, int index) throw(Exception);
       Position position(const Object& reference = world) const throw(Exception);
-      Orientation orientation() const throw(Exception);
+      Orientation orientation(const Object& reference = world) const throw(Exception);
       std::string name() const throw(Exception);
   };
 
