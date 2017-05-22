@@ -123,13 +123,13 @@ void handleRoad(const RoadEvent& e) {
   marker.color.g = 1.0;
   marker.color.r = 1.0;
   // todo set line width
-  marker.scale.x = 0.01;
   //todo add points from nurb
   using Vector3T = Value<float, 1, 3, false>;
   const auto& nurbData = e.attribute(Nurbs()).value();
   const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
   const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
   const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
+  marker.scale.x = 5.0;
   auto limits = nurbData.col(dim).segment(1,lSize+1);
   ROS_DEBUG_STREAM("NURBS: dim: " << dim);
   ROS_DEBUG_STREAM("NURBS: pSize: " << pSize);
@@ -149,7 +149,7 @@ void handleRoad(const RoadEvent& e) {
           return f(i,n, u)*N(i, n-1, u) + g(i+1,n, u)*N(i+1, n-1, u);
   };
   ostringstream os;
-  for(size_t i=4; i<97; i++) {
+  for(size_t i=300/lSize; i<100-300/lSize; i++) {
       auto point = Vector3T::Zeros();
       os << setprecision(3);
       for(size_t j=0; j<pSize; j++) {
