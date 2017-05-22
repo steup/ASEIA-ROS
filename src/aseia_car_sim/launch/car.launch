@@ -6,7 +6,7 @@
       <group ns="lane">
         <param name="type"   value="pid"/>
         <param name="p"      value="4"/>
-        <param name="ref"    value="null"/>
+        <param name="ref"    value="laneOffset"/>
         <param name="sensor" value="lane"/>
         <param name="act"    value="steer"/>
       </group>
@@ -64,6 +64,10 @@
       </group>
     </group>
     <group ns="references">
+      <group ns="laneOffset">
+        <param name="type" value="float"/>
+        <param name="value" value="0.2"/>
+      </group>
       <group ns="speed">
         <param name="type" value="float"/>
         <param name="value" value="10.0"/>
@@ -82,7 +86,7 @@
       <param name="ctrls"      value="lane, acc, straight, maxSpeed, minSpeed"/>
       <param name="sens"       value="lane, frontDist, pose"/>
       <param name="acts"       value="speed, steer"/>
-      <param name="refs"       value="speed, null, dist"/>
+      <param name="refs"       value="speed, null, dist, laneOffset"/>
     </node>
   </group>
 </launch>
