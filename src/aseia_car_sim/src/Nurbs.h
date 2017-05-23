@@ -11,11 +11,15 @@ class NURBCurve {
     const size_t mDim;
   public:
     using Point = Eigen::Matrix<float, 3, 1>;
-
+    NURBCurve() : mKnots(), mPoints(), mDim(0) {}
     NURBCurve(size_t dim, const decltype(mKnots)& knots, const decltype(mPoints)& points)
       : mKnots(knots), mPoints(points), mDim(dim) {}
     NURBCurve(size_t dim, decltype(mKnots)&& knots, decltype(mPoints)&& points);
 
     Point sample(float u) const;
+
+    operator bool() const {
+      return mKnots.rows()>0 && mPoints.rows()>0;
+    }
 };
 }

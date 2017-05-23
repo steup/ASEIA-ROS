@@ -133,8 +133,8 @@ void handleRoad(const RoadEvent& e) {
   const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
   const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
   const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
+  const auto& limits = nurbData.col(dim).segment(1,lSize+1);
   marker.scale.x = 5.0;
-  auto limits = nurbData.col(dim).segment(1,lSize+1);
   ROS_DEBUG_STREAM("NURBS: dim: " << dim);
   ROS_DEBUG_STREAM("NURBS: pSize: " << pSize);
   ROS_DEBUG_STREAM("NURBS: lSize: " << lSize);

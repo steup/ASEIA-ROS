@@ -1,4 +1,5 @@
 #include "Attributes.h"
+#include "Nurbs.h"
 
 #include <pluginlib/class_list_macros.h>
 #include <ros/console.h>
@@ -17,11 +18,12 @@ namespace aseia_car_sim {
   class UTMToRoadTransformer : public Transformer {
     private:
       uint32_t mInRef, mOutRef;
-      MetaEvent mRef;
+      MetaValue mNurbPos;
+      MetaValue mNurbOri;
+      NURBCurve mCurve;
 
       /** \todo implement **/
-      MetaValue nurbsCoord(MetaValue in, const MetaValue& refIn,
-                           const MetaValue& refOut, const MetaValue& nurbs) {
+      MetaValue nurbsCoord(MetaValue& in, MetaValue& oriIn) {
         ROS_ERROR_STREAM("UTM to Road Transform does not yet work");
         return in;
       }
@@ -50,17 +52,28 @@ namespace aseia_car_sim {
         if(!attr)
           return {};
         if(attr->scale().reference() == mOutRef) {
-          mRef = event;
+          const MetaAttribute* mPosPtr = event.attribute(Reference::value());
+          const MetaAttribute* mOriPtr = event.attribute(Orientation::value());
+          const MetaAttribute* mNurbPtr = event.attribute(Nurbs::value());
+          if(!mPosPtr || !mOriPtr || !mNurbPtr) {
+            ROS_ERROR_STREAM("Invalid Road reference received: dropping it!");
+            return {};
+          }
+          mNurbPos = mPosPtr->value();
+          mNurbOri = mOriPtr->value();
+          const auto& nurbData = mNurbPtr->value();
+          const size_t dim = (size_t)nurbData.get(0,0);
+          const size_t pSize = (size_t)nurbData.get(0,1);
+          const size_t lSize = (size_t)nurbData.get(0,2);
+          const auto& limits = nurbData.col(dim).segment(1,lSize+1);
           return {};
         }
-        if(attr->scale().reference() == mInRef && mRef != MetaEvent()) {
+        if(attr->scale().reference() == mInRef && mCurve) {
           MetaEvent e = event;
           e.attribute(Position::value())->scale().reference(mOutRef);
           MetaValue& in     = e.attribute(Position::value())->value();
-          const MetaValue& refIn  = mRef.attribute(Reference::value())->value();
-          const MetaValue& refOut = mRef.attribute(Position::value())->value();
-          const MetaValue& nurbs  = mRef.attribute(Nurbs::value())->value();
-          in = nurbsCoord( in, refIn, refOut, nurbs);
+          MetaValue& oriIn  = e.attribute(Orientation::value())->value();
+          nurbsCoord(in, oriIn);
           return {e};
         }
         return {};
