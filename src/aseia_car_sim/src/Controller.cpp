@@ -41,8 +41,8 @@ namespace car {
           mRefName(getStringParam(path+"/ref")),
           mActName(getStringParam(path+"/act"))
       {
-        mSensPub = ros::NodeHandle().advertise<std_msgs::Float32>(mSensorName, 1);
-        mActPub = ros::NodeHandle().advertise<std_msgs::Float32>(mActName, 1);
+        mSensPub = ros::NodeHandle().advertise<std_msgs::Float32>(mSensorName+to_string(mCar.index()), 1);
+        mActPub = ros::NodeHandle().advertise<std_msgs::Float32>(mActName+to_string(mCar.index()), 1);
       }
 
       std::string dataType() const { return "float"; }

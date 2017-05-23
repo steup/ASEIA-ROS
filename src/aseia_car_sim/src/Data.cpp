@@ -48,10 +48,12 @@ namespace car {
       VisionDepthSensor mSensor;
       float mPos;
       float roadTreshold = 0.9;
+      float mValue = 0, mAlpha;
     public:
       LaneSensor(const std::string& path, const Car& car)
         : Float(path, car, true),
-          mSensor(getName(path+"/handle"), car.index())
+          mSensor(getName(path+"/handle"), car.index()),
+          mAlpha(getFloatParam(path+"/alpha"))
       {
         ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
         mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
@@ -71,7 +73,8 @@ namespace car {
           if ( !left )
             start = i;
         }
-        value = ( (float)( start + stop ) / mSensor.resolution[0] ) - 1;
+        value = (1-mAlpha)*mValue + mAlpha*(( (float)( start + stop ) / mSensor.resolution[0] ) - 1);
+        mValue= value;
         ROS_DEBUG_STREAM(*this);
         mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
         mEvent.attribute(id::attribute::Position()).value()(1,0) = { value, 0 };

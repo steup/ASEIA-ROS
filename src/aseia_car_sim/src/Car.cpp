@@ -140,7 +140,7 @@ namespace car {
 
               const Float& speed = dynamic_cast<const Float&>(*mAct["speed"]);
               const Float& steer = dynamic_cast<const Float&>(*mAct["steer"]);
-              A2 speeds = A2::Constant(speed);
+              A2 speeds = A2::Constant(speed)*2/0.76;
               A2 angles = A2::Zero();
               if(steer > 0.0001 || steer < -0.0001) {
                 float r = mLength * tanf(M_PI_2 - steer);
