@@ -66,6 +66,7 @@ namespace aseia_car_sim {
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
           const auto& limits = nurbData.col(dim).segment(1,lSize+1);
+          mCurve = NURBCurve(dim, move(limits.cast<float>()), move(nurbData.block(1, 0, pSize, dim).cast<float>()));
           return {};
         }
         if(attr->scale().reference() == mInRef && mCurve) {
