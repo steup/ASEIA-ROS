@@ -10,5 +10,5 @@
   </include>
   <node name="sim" pkg="aseia_car_sim" type="simulation" launch-prefix="perf stat "/>
   <node name="bridge" pkg="aseia_car_sim" type="bridge"/>
-  <node name="road" pkg="aseia_car_sim" type="nurbs"/>
+  <node name="road" pkg="aseia_car_sim" type="road"/>
 </launch>

@@ -1,4 +1,5 @@
 #include "Attributes.h"
+#include "Nurbs.h"
 
 #include <string>
 #include <map>
@@ -128,7 +129,6 @@ void handleRoad(const RoadEvent& e) {
   marker.color.r = 1.0;
   // todo set line width
   //todo add points from nurb
-  using Vector3T = Value<float, 1, 3, false>;
   const auto& nurbData = e.attribute(Nurbs()).value();
   const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
   const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
@@ -140,38 +140,15 @@ void handleRoad(const RoadEvent& e) {
   ROS_DEBUG_STREAM("NURBS: lSize: " << lSize);
   ROS_DEBUG_STREAM("NURBS: limits: " << endl << limits);
   ROS_DEBUG_STREAM("NURBS: points: " << endl << nurbData);
-  auto f=[&limits](size_t i, size_t n, float u) {
-      return (u-limits(i))/(limits(i+n)-limits(i));
-  };
-  auto g=[&limits](size_t i, size_t n, float u) {
-      return (limits(i+n)-u)/(limits(i+n)-limits(i));
-  };
-  std::function<float(size_t,size_t,float)> N=[&limits, &f, &g, &N](size_t i, size_t n, float u) -> float {
-      if(n==0)
-          return (u >= limits(i) && u < limits(i+1))?1.0f:0.0f;
-      else
-          return f(i,n, u)*N(i, n-1, u) + g(i+1,n, u)*N(i+1, n-1, u);
-  };
-  ostringstream os;
+  NURBCurve c(dim, move(limits.cast<float>()), move(nurbData.block(1, 0, pSize, dim).cast<float>()));
   for(size_t i=300/lSize; i<100-300/lSize; i++) {
-      auto point = Vector3T::Zeros();
-      os << setprecision(3);
-      for(size_t j=0; j<pSize; j++) {
-          float n = N(j,3,i/100.0f);
-          auto v = Vector3T(nurbData.block(j+1, 0, 1, dim));
-          if(n>0.001) {
-            os << "n(" << (i/100.0) << ", " << j << "): "
-               << n << " * " << v;
-          }
-          point+=n*v;
-      }
+      NURBCurve::Point p = c.sample(i/100.0);
       geometry_msgs::Point temp;
-      temp.x=point(0,0);
-      temp.y=point(0,1);
-      temp.z=point(0,2);
-      marker.points.push_back(temp);
+      temp.x=p[0];
+      temp.y=p[1];
+      temp.z=p[2];
+      marker.points.emplace_back(move(temp));
   }
-  ROS_DEBUG_STREAM("NURBS intermediate:" << endl << os.str());
   ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);
   it->second.publish(marker);
 }
