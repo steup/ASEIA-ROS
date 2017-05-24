@@ -133,20 +133,22 @@ void handleRoad(const RoadEvent& e) {
   const size_t dim = (size_t)e.attribute(Nurbs()).value()(0,0);
   const size_t pSize = (size_t)e.attribute(Nurbs()).value()(0,1);
   const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
-  const auto& limits = nurbData.col(dim).segment(1,lSize+1);
+  const auto& knots = nurbData.block(1, 3, lSize+1, 1);
+  const auto& points = nurbData.block(1, 0, pSize+1, 3);
   marker.scale.x = 5.0;
-  ROS_DEBUG_STREAM("NURBS: dim: " << dim);
-  ROS_DEBUG_STREAM("NURBS: pSize: " << pSize);
-  ROS_DEBUG_STREAM("NURBS: lSize: " << lSize);
-  ROS_DEBUG_STREAM("NURBS: limits: " << endl << limits);
-  ROS_DEBUG_STREAM("NURBS: points: " << endl << nurbData);
-  NURBCurve c(dim, move(limits.cast<float>()), move(nurbData.block(1, 0, pSize, dim).cast<float>()));
+  ROS_DEBUG_STREAM("NURBS:\tdim  : " << dim << endl <<
+                         "\tpSize: " << pSize << endl <<
+                         "\tlSize: " << lSize << endl <<
+                         "\tknots: " << endl << knots << endl <<
+                         "\tpoints: " << endl << points);
+  using Curve = NURBCurve<decltype(knots), decltype(points), Value<float, 1, 3, false>>;
+  Curve c(dim, knots, points);
   for(size_t i=300/lSize; i<100-300/lSize; i++) {
-      NURBCurve::Point p = c.sample(i/100.0);
+      Curve::Point p = c.sample(i/100.0);
       geometry_msgs::Point temp;
-      temp.x=p[0];
-      temp.y=p[1];
-      temp.z=p[2];
+      temp.x=p(0,0);
+      temp.y=p(0,1);
+      temp.z=p(0,2);
       marker.points.emplace_back(move(temp));
   }
   ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);

@@ -17,13 +17,17 @@ namespace aseia_car_sim {
 
   class UTMToRoadTransformer : public Transformer {
     private:
+      using Curve = NURBCurve<MetaValue, MetaValue, MetaValue>;
       uint32_t mInRef, mOutRef;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
-      NURBCurve mCurve;
+      Curve::Points mSamples[100];
 
       /** \todo implement **/
       MetaValue nurbsCoord(MetaValue& in, MetaValue& oriIn) {
+        //move car pos to road reference
+        //find closest point of nurb
+        //
         ROS_ERROR_STREAM("UTM to Road Transform does not yet work");
         return in;
       }
@@ -61,12 +65,15 @@ namespace aseia_car_sim {
           }
           mNurbPos = mPosPtr->value();
           mNurbOri = mOriPtr->value();
-          const auto& nurbData = mNurbPtr->value();
+          const MetaValue& nurbData = mNurbPtr->value();
           const size_t dim = (size_t)nurbData.get(0,0);
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
-          const auto& limits = nurbData.col(dim).segment(1,lSize+1);
-          mCurve = NURBCurve(dim, move(limits.cast<float>()), move(nurbData.block(1, 0, pSize, dim).cast<float>()));
+          Curve c(dim, move(nurbData.block(1, dim, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
+          size_t i=0;
+          for(Curve::Points& points : mSamples)
+            point = c.sample(i++/100.0);
+          ROD_DEBUG_STREAM("UTMToRoad: got road nurb description")
           return {};
         }
         if(attr->scale().reference() == mInRef && mCurve) {
