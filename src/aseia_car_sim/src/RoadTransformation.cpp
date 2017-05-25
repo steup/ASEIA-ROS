@@ -17,19 +17,23 @@ namespace aseia_car_sim {
 
   class UTMToRoadTransformer : public Transformer {
     private:
-      using Curve = NURBCurve<MetaValue, MetaValue, MetaValue>;
       uint32_t mInRef, mOutRef;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
-      Curve::Points mSamples[100];
+      MetaNURBCurve::Point mSamples[100];
+      bool mCurveReady=false;
 
       /** \todo implement **/
-      MetaValue nurbsCoord(MetaValue& in, MetaValue& oriIn) {
-        //move car pos to road reference
-        //find closest point of nurb
-        //
-        ROS_ERROR_STREAM("UTM to Road Transform does not yet work");
-        return in;
+      void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
+        posIn -= mNurbPos;
+        double min=numeric_limits<double>::max();
+        size_t minI=0;
+        for(size_t i=0; i<100; i++) {
+          MetaValue temp=(posIn-mSamples[i]).norm();
+          if(temp.get(0,0).value()<min)
+            minI=i;
+        }
+        posIn = mSamples[minI];
       }
 
     public:
@@ -69,14 +73,15 @@ namespace aseia_car_sim {
           const size_t dim = (size_t)nurbData.get(0,0);
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
-          Curve c(dim, move(nurbData.block(1, dim, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
+          MetaNURBCurve c(dim, move(nurbData.block(1, 3, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
           size_t i=0;
-          for(Curve::Points& points : mSamples)
+          for(MetaNURBCurve::Point& point : mSamples)
             point = c.sample(i++/100.0);
-          ROD_DEBUG_STREAM("UTMToRoad: got road nurb description")
+          ROS_DEBUG_STREAM("UTMToRoad: got road nurb description");
+          mCurveReady = true;
           return {};
         }
-        if(attr->scale().reference() == mInRef && mCurve) {
+        if(attr->scale().reference() == mInRef && mCurveReady) {
           MetaEvent e = event;
           e.attribute(Position::value())->scale().reference(mOutRef);
           MetaValue& in     = e.attribute(Position::value())->value();

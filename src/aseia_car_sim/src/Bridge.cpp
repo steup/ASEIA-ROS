@@ -141,10 +141,9 @@ void handleRoad(const RoadEvent& e) {
                          "\tlSize: " << lSize << endl <<
                          "\tknots: " << endl << knots << endl <<
                          "\tpoints: " << endl << points);
-  using Curve = NURBCurve<decltype(knots), decltype(points), Value<float, 1, 3, false>>;
-  Curve c(dim, knots, points);
+  NURBCurve c(dim, NURBCurve::KnotsType(knots), NURBCurve::PointsType(points));
   for(size_t i=300/lSize; i<100-300/lSize; i++) {
-      Curve::Point p = c.sample(i/100.0);
+      NURBCurve::Point p = c.sample(i/100.0);
       geometry_msgs::Point temp;
       temp.x=p(0,0);
       temp.y=p(0,1);

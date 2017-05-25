@@ -27,9 +27,9 @@ catkin_package()
 
 include_directories(${catkin_INCLUDE_DIRS})
 
-add_library(CarSimTransformations src/RoadTransformation src/Nurbs.cpp)
+add_library(CarSimTransformations src/RoadTransformation)
 add_executable(simulation src/Simulation.cpp)
-add_executable(bridge src/Bridge.cpp src/Nurbs.cpp)
+add_executable(bridge src/Bridge.cpp)
 add_executable(road src/Road.cpp)
 add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp src/VRepWrapper.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
