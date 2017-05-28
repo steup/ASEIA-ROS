@@ -45,7 +45,7 @@
   <depend>vrep_common</depend>
   <depend>vrep_plugin</depend>
   <depend>nav_msgs</depend>
-  <depend>tf</depend>
+  <depend>tf2</depend>
   <depend>pluginlib</depend>
 
   <export>
