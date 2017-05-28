@@ -23,17 +23,16 @@ namespace aseia_car_sim {
       MetaNURBCurve::Point mSamples[100];
       bool mCurveReady=false;
 
-      /** \todo implement **/
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
         posIn -= mNurbPos;
-        double min=numeric_limits<double>::max();
+        MetaValue min=numeric_limits<double>::max();
         size_t minI=0;
         for(size_t i=0; i<100; i++) {
           MetaValue temp=(posIn-mSamples[i]).norm();
-          if(temp.get(0,0).value()<min)
+          if(temp<min)
             minI=i;
         }
-        posIn = mSamples[minI];
+        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{minI/100.0, 1/100.0}}}, ((ValueType)posIn).typeId());
       }
 
     public:
