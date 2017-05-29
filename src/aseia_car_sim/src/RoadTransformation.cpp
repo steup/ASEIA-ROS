@@ -20,19 +20,23 @@ namespace aseia_car_sim {
       uint32_t mInRef, mOutRef;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
-      MetaNURBCurve::Point mSamples[100];
+      std::vector<MetaNURBCurve::Point> mSamples;
       bool mCurveReady=false;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
-        posIn -= mNurbPos;
-        MetaValue min=numeric_limits<double>::max();
+        posIn += mNurbPos;
+        MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
-        for(size_t i=0; i<100; i++) {
-          MetaValue temp=(posIn-mSamples[i]).norm();
-          if(temp<min)
+        ROS_DEBUG_STREAM("Input Position " << posIn);
+        for(size_t i=0; i<mSamples.size(); i++) {
+          MetaValue temp=(posIn-mSamples[i]);
+          if(temp.norm()<min) {
             minI=i;
+            min = temp.norm();
+          }
         }
-        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{minI/100.0, 1/100.0}}}, ((ValueType)posIn).typeId());
+        ROS_DEBUG_STREAM("Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
+        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, ((ValueType)posIn).typeId());
       }
 
     public:
@@ -54,7 +58,6 @@ namespace aseia_car_sim {
       }
 
       virtual Events operator()(const MetaEvent& event) {
-        ROS_DEBUG_STREAM("Executing Road to UTM Transform on " << event);
         const MetaAttribute* attr = event.attribute(Position::value());
         if(!attr)
           return {};
@@ -72,11 +75,16 @@ namespace aseia_car_sim {
           const size_t dim = (size_t)nurbData.get(0,0);
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
+          ROS_DEBUG_STREAM("Got Road description with: " << endl << "\tDimension: " << dim << endl <<"\t#Points: " << pSize << "\t#Knots: " << lSize);
           MetaNURBCurve c(dim, move(nurbData.block(1, 3, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
-          size_t i=0;
-          for(MetaNURBCurve::Point& point : mSamples)
-            point = c.sample(i++/100.0);
-          ROS_DEBUG_STREAM("UTMToRoad: got road nurb description");
+          ostringstream os;
+          os << "UTMToRoad: got road nurb description:" << endl;
+          mSamples.clear();
+          for(size_t i=dim*100/lSize;i<100-dim*100/lSize;i++) {
+            mSamples.emplace_back(c.sample(MetaValue(i/100.0, id::type::Float::value())).transpose());
+            os << mSamples.back() << endl;
+          }
+          ROS_DEBUG_STREAM(os.str());
           mCurveReady = true;
           return {};
         }
@@ -115,21 +123,16 @@ namespace aseia_car_sim {
         if(!goalPosAT || !goalTimeAT || !providedPosAT
            || goalPosAT->scale().reference() == providedPosAT->scale().reference())
           return {};
-        uint32_t oriDim, nurbsDim=100;
         ::id::type::ID type = ValueType(goalPosAT->value()).typeId();
-        if(goalPosAT->value().rows() == 3)
-          oriDim = 3;
-        else
-          oriDim = 1;
 
         EventType orig = goal;
         orig.attribute(Position::value())->scale().reference(providedPosAT->scale().reference());
         //todo handle possible orientation
         EventType reference;
         reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
-        reference.add(AttributeType(Orientation::value(), ValueType(type, oriDim, 1, true), providedPosAT->scale(), Radian()));
+        reference.add(AttributeType(Orientation::value(), ValueType(type, 4, 1, true), providedPosAT->scale(), Radian()));
         reference.add(*goalTimeAT);
-        reference.add(AttributeType(Nurbs::value(), ValueType(type, nurbsDim, 1, false), goalPosAT->scale(), providedPosAT->unit()));
+        reference.add(AttributeType(Nurbs::value(), ValueType(type, 100, 4, false), goalPosAT->scale(), providedPosAT->unit()));
 
         auto input = {orig, reference};
         ROS_INFO_STREAM("UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
