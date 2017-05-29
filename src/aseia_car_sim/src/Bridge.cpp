@@ -78,12 +78,12 @@ void handleRoadInput(const RoadPoseEvent& e) {
 
 struct NurbsBaseConfig : public BaseConfig {
   using TimeValueType = Value<double, 1>;
-  using PositionValueType = Value<float, 3>;
+  using PositionValueType = Value<double, 3>;
   using PositionScale = Scale<std::ratio<1>, 1>;
 };
-using Ref = Attribute<Reference, Value<float, 3>, Meter>;
-using Ori = Attribute<Orientation, Value<float, 4>, Radian>;
-using NurbData = Attribute<Nurbs, Value<float, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
+using Ref = Attribute<Reference, Value<double, 3>, Meter>;
+using Ori = Attribute<Orientation, Value<double, 4>, Radian>;
+using NurbData = Attribute<Nurbs, Value<double, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
 using RoadEvent = BaseEvent<NurbsBaseConfig>
                         ::append<Ref>::type
                         ::append<NurbData>::type
