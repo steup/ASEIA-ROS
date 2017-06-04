@@ -45,7 +45,7 @@ class NurbsPublisher {
                                           };
       mRef.attribute(Reference()).value()={{{0.0f, 0}},
                                            {{0.0f, 0}},
-                                           {{-100.0f, 0}}
+                                           {{-95.0f, 0}}
                                           };
       Eigen::Quaternionf q =   Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitX())
                              * Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitY())

@@ -51,7 +51,7 @@ void handlePoseInput(const PoseEvent& e) {
   nav_msgs::Odometry msg;
   msg.pose.pose.position.x = e.attribute(Position()).value()(0,0).value();
   msg.pose.pose.position.y = e.attribute(Position()).value()(1,0).value();
-  msg.pose.pose.position.z = e.attribute(Position()).value()(2,0).value();
+  msg.pose.pose.position.z = e.attribute(Position()).value()(2,0).value()+5.0;
   msg.pose.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value(),
   msg.pose.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value(),
   msg.pose.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value(),

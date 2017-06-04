@@ -24,7 +24,7 @@ namespace aseia_car_sim {
       bool mCurveReady=false;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
-        posIn += mNurbPos;
+        posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
         ROS_DEBUG_STREAM("Input Position " << posIn);
@@ -36,7 +36,22 @@ namespace aseia_car_sim {
           }
         }
         ROS_DEBUG_STREAM("Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
+        MetaValue d = mSamples[minI]-posIn;
+        MetaValue n = mSamples[minI]-mSamples[(minI-1)%mSamples.size()];
+        MetaValue t = d.dot(n)/n.dot(n);
+        if(t>0) {
+          n = mSamples[(minI+1)%mSamples.size()]-mSamples[minI];
+          t = d.dot(n)/n.dot(n);
+        }
+        MetaValue offset = (t*n-d).norm();
+        MetaValue u({{{0, (t*n).norm().get(0,0)}}}, ((ValueType)offset).typeId());
+        offset+=u;
+        ROS_DEBUG_STREAM("Lane offset: \n\td = " << d.transpose() << "\n\tn: " << n.transpose() << "\n\to: " << offset);
         posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, ((ValueType)posIn).typeId());
+        if((posIn(0,0)-n(1,0)*posIn(1,0))<0)
+          posIn.block(1,0, offset);
+        else
+          posIn.block(1,0, -offset);
       }
 
     public:
