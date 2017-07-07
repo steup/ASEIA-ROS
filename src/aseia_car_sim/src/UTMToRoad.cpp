@@ -8,8 +8,6 @@
 #include <MetaEvent.h>
 #include <IO.h>
 
-#include <iostream>
-
 namespace aseia_car_sim {
 
   using namespace std;

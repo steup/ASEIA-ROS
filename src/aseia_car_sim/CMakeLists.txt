@@ -27,7 +27,7 @@ catkin_package()
 
 include_directories(${catkin_INCLUDE_DIRS})
 
-add_library(CarSimTransformations src/RoadTransformation)
+add_library(CarSimTransformations src/UTMToRoad.cpp src/VirtACC.cpp)
 add_executable(simulation src/Simulation.cpp)
 add_executable(bridge src/Bridge.cpp)
 add_executable(road src/Road.cpp)
