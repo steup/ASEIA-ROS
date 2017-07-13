@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <tf/transform_datatypes.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Float32.h>
 #include <visualization_msgs/Marker.h>
 #include <nav_msgs/Odometry.h>
 
@@ -37,8 +38,10 @@ struct RoadBaseConfig : public BaseConfig {
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
 using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
+using DistAttr = Attribute<Distance, Value<float, 1>, Meter>;
 using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
+using ACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
@@ -153,13 +156,26 @@ void handleRoad(const RoadEvent& e) {
   ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);
   it->second.publish(marker);
 }
-}
 
+void handleACC(const ACCEvent& e) {
+  uint32_t car = e.attribute(Object()).value()(0.0);
+  string topic = "/car"+to_string(car)+"/acc";
+  auto it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
+  }
+  std_msgs::Float32 msg;
+  msg.data = e.attribute(Distance()).value()(0,0);
+  it->second.publish(msg);
+}
+}
 int main(int argc, char** argv) {
   ros::init(argc, argv, "aseia_bridge");
   SensorEventSubscriber<aseia_car_sim::PoseEvent> poseSub(aseia_car_sim::handlePoseInput);
   SensorEventSubscriber<aseia_car_sim::RoadPoseEvent> roadPoseSub(aseia_car_sim::handleRoadInput);
   SensorEventSubscriber<aseia_car_sim::RoadEvent> roadSub(aseia_car_sim::handleRoad);
+  SensorEventSubscriber<aseia_car_sim::ACCEvent> accSub(aseia_car_sim::handleACC);
   while(ros::ok()) ros::spin();
   return 0;
 }
