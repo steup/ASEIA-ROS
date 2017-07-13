@@ -27,14 +27,14 @@ namespace aseia_car_sim {
         const MetaAttribute& pos1 = *inputs[1]->attribute(Position::value());
         const MetaAttribute& time0 = *inputs[0]->attribute(Time::value());
         const MetaAttribute& time1 = *inputs[1]->attribute(Time::value());
-        if(oID0 == oID1 || time0 != time1)
+        if(oID0 == oID1 /*|| time0 != time1*/)
           return {};
         MetaEvent e0(out()), e1(out());
         e0=*inputs[0];
         e1=*inputs[1];
         MetaValue dist = (pos0.value()-pos1.value()).norm();
-        e0.attribute(Distance::value())->value().block(1, 1, dist);
-        e1.attribute(Distance::value())->value().block(1, 1, dist);
+        e0.attribute(Distance::value())->value()=dist;
+        e1.attribute(Distance::value())->value()=dist;
         return {e0, e1};
       }
 
@@ -43,28 +43,33 @@ namespace aseia_car_sim {
       }
   };
 
-  class VirtACCTransformation : public Transformation {
+  class VirtACC : public Transformation {
     private:
-      const EventID mGoal = EventID({Position::value(), Distance::value(), Time::value(),
-                                     Object::value(), PublisherID::value()});
+      static EventID mGoal;
     public:
-      VirtACCTransformation() : Transformation(Transformation::Type::attribute, 2, EventID::any) {}
+      VirtACC() : Transformation(Transformation::Type::heterogeneus, 2, mGoal) {
+        ROS_INFO_STREAM("VirtACC Transformation with goal id: " << mGoal);
+      }
 
       virtual EventIDs in(EventID goal) const {
+        ROS_INFO_STREAM("Testing VirtACC against goal: " << goal);
         if(goal == mGoal) {
+          ROS_INFO_STREAM("VirtACC fits");
           return {goal/=Distance::value(), goal/=Distance::value()};
         }else
           return {};
       };
 
       virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
+        ROS_INFO_STREAM("Testing VirtACC against goal: " << goal);
         if(EventID(goal) != mGoal)
           return {};
 
-        EventType out = goal;
-        out.remove(Distance::value());
+        EventType in = goal;
+        in.remove(Distance::value());
 
-        return {out, out};
+        ROS_INFO_STREAM("VirtACC fits with in type: " << in);
+        return {in, in};
       }
 
       virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy) const {
@@ -76,6 +81,9 @@ namespace aseia_car_sim {
       }
   };
 
+EventID VirtACC::mGoal({Position::value(), Distance::value(), Time::value(),
+                                     Object::value(), PublisherID::value()});
+
 }
 
-PLUGINLIB_EXPORT_CLASS(aseia_car_sim::VirtACCTransformation, Transformation)
+PLUGINLIB_EXPORT_CLASS(aseia_car_sim::VirtACC, Transformation)
