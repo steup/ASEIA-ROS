@@ -47,7 +47,6 @@ class RosChannel : public Channel {
         MetaEvent  e(eT);
         DeSerializer<decltype(msgPtr->event.begin())> d(msgPtr->event.begin(), msgPtr->event.end());
         d >> e;
-        ROS_DEBUG_STREAM("Got Event to transform: " << e);
         handleEvent(e);
     }
 
@@ -57,13 +56,14 @@ class RosChannel : public Channel {
       ros::NodeHandle n;
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
       for(const EventType& in : mTrans->in()) {
-        for(const EventType& subType : KnowledgeBase::findCompatible(in))
+        for(const EventType& subType : KnowledgeBase::findCompatible(in)) {
+          ROS_DEBUG_STREAM("Subscribing to topic: " << topic(subType));
           mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(subType), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, subType)));
+        }
       }
     }
 
     virtual void publishEvent(const MetaEvent& e) const {
-      ROS_DEBUG_STREAM("Sending transformed Event: " << e);
       aseia_base::SensorEvent sE;
       Serializer<decltype(back_inserter(sE.event))> s(back_inserter(sE.event));
       s << e;
@@ -142,6 +142,7 @@ class ChannelManager {
     }
 
     ChannelManager() {
+      ROS_INFO_STREAM("Starting Channel Manager!");
       KnowledgeBase::registerTransformation(cast);
       KnowledgeBase::registerTransformation(rescale);
       string transforms;
@@ -153,7 +154,7 @@ class ChannelManager {
           try {
             mTransList.emplace_back(mTransLoaderPtr->createUnmanagedInstance(transName), Deleter(*mTransLoaderPtr, transName));
             KnowledgeBase::registerTransformation(*mTransList.back());
-            ROS_INFO_STREAM("Loaded and registered " << transName);
+            ROS_ERROR_STREAM("Loaded and registered " << transName);
           } catch(const pluginlib::LibraryLoadException& e) {
             ROS_ERROR_STREAM("Error loading library for transformation " << transName << ": " << e.what());
           } catch(const pluginlib::CreateClassException& e) {

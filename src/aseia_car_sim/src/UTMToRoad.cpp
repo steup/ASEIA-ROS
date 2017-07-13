@@ -148,7 +148,7 @@ namespace aseia_car_sim {
         reference.add(AttributeType(Nurbs::value(), ValueType(type, 100, 4, false), goalPosAT->scale(), providedPosAT->unit()));
 
         auto input = {orig, reference};
-        ROS_INFO_STREAM("UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
+        ROS_DEBUG_STREAM("UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
         return input;
       }
 
