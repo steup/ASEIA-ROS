@@ -71,17 +71,24 @@ void handlePoseInput(const PoseEvent& e) {
 }
 
 void handleRoadInput(const RoadPoseEvent& e) {
-  uint32_t car = e.attribute(Object()).value()(0.0);
-  string topic = "/car"+to_string(car)+"/road";
+  ROS_DEBUG_STREAM("Got Road Position Event: " << e);
+  uint32_t car = e.attribute(Object()).value()(0,0);
+  string topic = "/car"+to_string(car)+"/roadOffset";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
     NodeHandle nh;
-    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::String>(topic, 1))).first;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
   }
-  std_msgs::String msg;
-  ostringstream os;
-  os << e;
-  msg.data = os.str();
+  std_msgs::Float32 msg;
+  msg.data = e.attribute(Position()).value()(2,0).value();
+  it->second.publish(msg);
+  topic = "/car"+to_string(car)+"/roadLane";
+  it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
+  }
+  msg.data = e.attribute(Position()).value()(1,0).value();
   it->second.publish(msg);
 }
 
