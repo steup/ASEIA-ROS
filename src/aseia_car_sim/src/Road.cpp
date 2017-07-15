@@ -16,7 +16,8 @@ namespace aseia_car_sim {
 class NurbsPublisher {
   private:
     struct NurbsBaseConfig : public BaseConfig {
-      using TimeValueType = Value<double, 1>;
+      using TimeValueType = Value<uint32_t, 1>;
+      using TimeScale = Scale<std::ratio<1,1000>>;
       using PositionValueType = Value<float, 3>;
       using PositionScale = Scale<std::ratio<1>, 1>;
     };
@@ -32,12 +33,12 @@ class NurbsPublisher {
     NurbsReference mRef;
 
     void periodic(const ros::TimerEvent& e){
-      mRef.attribute(Time()).value()={{{ros::Time::now().toSec(), 0.0}}};
+      mRef.attribute(Time()).value()={{{(uint32_t)ros::Time::now().toSec(), 0}}};
       mPub.publish(mRef);
     }
   public:
     NurbsPublisher()
-      : mTimer(ros::NodeHandle().createTimer(ros::Duration(5), &NurbsPublisher::periodic, this))
+      : mTimer(ros::NodeHandle().createTimer(ros::Duration(30), &NurbsPublisher::periodic, this))
     {
       mRef.attribute(Position()).value()={{{0, 0}},
                                           {{0, 0}},

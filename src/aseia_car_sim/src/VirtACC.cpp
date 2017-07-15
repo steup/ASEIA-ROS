@@ -27,7 +27,7 @@ namespace aseia_car_sim {
         const MetaAttribute& pos1 = *inputs[1]->attribute(Position::value());
         const MetaAttribute& time0 = *inputs[0]->attribute(Time::value());
         const MetaAttribute& time1 = *inputs[1]->attribute(Time::value());
-        if(oID0 == oID1 /*|| time0 != time1*/)
+        if(oID0 == oID1 || (time0 - time1).value().norm() < 100)
           return {};
         MetaEvent e0(out()), e1(out());
         e0=*inputs[0];
@@ -48,11 +48,11 @@ namespace aseia_car_sim {
       static EventID mGoal;
     public:
       VirtACC() : Transformation(Transformation::Type::heterogeneus, 2, mGoal) {
-        ROS_INFO_STREAM("VirtACC Transformation with goal id: " << mGoal);
+        ROS_DEBUG_STREAM("VirtACC Transformation with goal id: " << mGoal);
       }
 
       virtual EventIDs in(EventID goal) const {
-        ROS_INFO_STREAM("Testing VirtACC against goal: " << goal);
+        ROS_DEBUG_STREAM("Testing VirtACC against goal: " << goal);
         if(goal == mGoal) {
           ROS_INFO_STREAM("VirtACC fits");
           return {goal/=Distance::value(), goal/=Distance::value()};
@@ -61,14 +61,14 @@ namespace aseia_car_sim {
       };
 
       virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
-        ROS_INFO_STREAM("Testing VirtACC against goal: " << goal);
+        ROS_DEBUG_STREAM("Testing VirtACC against goal: " << goal);
         if(EventID(goal) != mGoal)
           return {};
 
         EventType in = goal;
         in.remove(Distance::value());
 
-        ROS_INFO_STREAM("VirtACC fits with in type: " << in);
+        ROS_DEBUG_STREAM("VirtACC fits with in type: " << in);
         return {in, in};
       }
 

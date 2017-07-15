@@ -16,6 +16,7 @@ namespace aseia_car_sim {
   class UTMToRoadTransformer : public Transformer {
     private:
       uint32_t mInRef, mOutRef;
+      MetaValue mRoadLength;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
       std::vector<MetaNURBCurve::Point> mSamples;
@@ -45,7 +46,7 @@ namespace aseia_car_sim {
         MetaValue u({{{0, (t*n).norm().get(0,0)}}}, ((ValueType)offset).typeId());
         offset+=u;
         ROS_DEBUG_STREAM("Lane offset: \n\td = " << d.transpose() << "\n\tn: " << n.transpose() << "\n\to: " << offset);
-        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, ((ValueType)posIn).typeId());
+        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
         if((posIn(0,0)-n(1,0)*posIn(1,0))<0)
           posIn.block(1,0, offset);
         else
@@ -93,11 +94,24 @@ namespace aseia_car_sim {
           ostringstream os;
           os << "UTMToRoad: got road nurb description:" << endl;
           mSamples.clear();
-          for(size_t i=dim*100/lSize;i<100-dim*100/lSize;i++) {
-            mSamples.emplace_back(c.sample(MetaValue(i/100.0, id::type::Float::value())).transpose());
+          const size_t sampleSize = 200;
+          for(size_t i=dim*sampleSize/lSize;i<sampleSize-dim*sampleSize/lSize;i++) {
+            mSamples.emplace_back(c.sample(MetaValue((float)i/sampleSize, id::type::Float::value())).transpose());
             os << mSamples.back() << endl;
           }
+          ::id::type::ID dataType = nurbData.typeId();
+          MetaValue length(dataType, 1);
+          bool first = true;
+          MetaValue oldSample;
+          for(const auto& p : mSamples) {
+            if(!first)
+              length += (p-oldSample).norm();
+            oldSample = p;
+            first=false;
+          }
+          os << "\tLenght: " << length;
           ROS_DEBUG_STREAM(os.str());
+          mRoadLength = move(length);
           mCurveReady = true;
           return {};
         }

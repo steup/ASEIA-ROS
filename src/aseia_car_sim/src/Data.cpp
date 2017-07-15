@@ -13,6 +13,17 @@
 
 namespace car {
 
+  struct EventConfig : public BaseConfig {
+      using TimeValueType = Value<uint32_t, 1>;
+      using TimeScale = Scale<std::ratio<1,1000>>;
+      using PositionValueType = Value<float, 3>;
+      using PositionScale = Scale<std::ratio<1>, 0>;
+  };
+
+  uint32_t getTime() {
+    return ros::Time::now().toNSec()/1000000;
+  }
+
   using namespace std;
   using namespace Eigen;
   using namespace vrep;
@@ -36,9 +47,7 @@ namespace car {
 
   class LaneSensor : public Float {
     private:
-      struct LaneBaseConfig : public BaseConfig {
-        using TimeValueType = Value<double, 1>;
-        using PositionValueType = Value<float, 3>;
+      struct LaneBaseConfig : public EventConfig {
         using PositionScale = Scale<std::ratio<1>, 1>;
       };
       using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
@@ -76,7 +85,7 @@ namespace car {
         value = (1-mAlpha)*mValue + mAlpha*(( (float)( start + stop ) / mSensor.resolution[0] ) - 1);
         mValue= value;
         ROS_DEBUG_STREAM(*this);
-        mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
+        mEvent.attribute(id::attribute::Time()).value()(0,0) = { getTime(), 0 };
         mEvent.attribute(id::attribute::Position()).value()(1,0) = { value, 0 };
         mPub.publish(mEvent);
         return true;
@@ -89,10 +98,7 @@ namespace car {
 
   class PoseSensor : public Data {
     private:
-      struct PoseBaseConfig : public BaseConfig {
-        using TimeValueType = Value<double, 1>;
-        using PositionValueType = Value<float, 3>;
-      };
+      using PoseBaseConfig = EventConfig;
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using Ori  = Attribute<id::attribute::Orientation, Value<float, 4>, Radian>;
       using PoseEvent = BaseEvent<PoseBaseConfig>::append<ObjectID>::type::append<Ori>::type;
@@ -118,7 +124,7 @@ namespace car {
                                         Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());
         const Object::Orientation ori = mCarBody.orientation() * mod;
         ROS_DEBUG_STREAM(*this);
-        mEvent.attribute(id::attribute::Time()).value()(0,0) = { ros::Time::now().toSec(), 0 };
+        mEvent.attribute(id::attribute::Time()).value()(0,0) = { getTime(), 0 };
         mEvent.attribute(id::attribute::Position()).value() = {{{pos[0], 0}}, {{pos[1], 0}}, {{ pos[2], 0 }}};
         mEvent.attribute(id::attribute::Orientation()).value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
         ROS_DEBUG_STREAM("Car" << mCar.index() << " Orientation: (" << ori.x() << ", " << ori.y() << ", " << ori.z() << ", " << ori.w() <<")");
