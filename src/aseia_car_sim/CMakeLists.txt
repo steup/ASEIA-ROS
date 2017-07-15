@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   tf
   pluginlib
+  dynamic_reconfigure
   aseia_base
   vrep_plugin
   vrep_common
@@ -16,6 +17,10 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
    FILES
    RegisterCar.srv
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/Nurbs.cfg
 )
 
 generate_messages(
@@ -28,6 +33,7 @@ catkin_package()
 include_directories(${catkin_INCLUDE_DIRS})
 
 add_library(CarSimTransformations src/UTMToRoad.cpp src/VirtACC.cpp)
+add_dependencies(CarSimTransformations ${PROJECT_NAME}_gencfg)
 add_executable(simulation src/Simulation.cpp)
 add_executable(bridge src/Bridge.cpp)
 add_executable(road src/Road.cpp)

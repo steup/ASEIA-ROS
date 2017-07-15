@@ -1,6 +1,8 @@
 #include "Attributes.h"
 #include "Nurbs.h"
 
+#include <aseia_car_sim/NurbsConfig.h>
+#include <dynamic_reconfigure/server.h>
 #include <pluginlib/class_list_macros.h>
 #include <ros/console.h>
 #include <Transformation.h>
@@ -15,12 +17,14 @@ namespace aseia_car_sim {
 
   class UTMToRoadTransformer : public Transformer {
     private:
+      dynamic_reconfigure::Server<NurbsConfig> mDynReConfServer;
       uint32_t mInRef, mOutRef;
       MetaValue mRoadLength;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
       std::vector<MetaNURBCurve::Point> mSamples;
       bool mCurveReady=false;
+      size_t mSampleSize = 100;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
         posIn -= mNurbPos;
@@ -53,11 +57,19 @@ namespace aseia_car_sim {
           posIn.block(1,0, -offset);
       }
 
+      void dynReConfCallback(NurbsConfig &config, uint32_t level) {
+        ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.int_param);
+          mSampleSize = config.int_param;
+      }
+
     public:
       UTMToRoadTransformer(const EventType& out, const EventTypes& in)
         : Transformer(out, in) {
         mOutRef = out.attribute(Position::value())->scale().reference();
         mInRef = in[0].attribute(Position::value())->scale().reference();
+        dynamic_reconfigure::Server<NurbsConfig>::CallbackType f;
+        f = boost::bind(&UTMToRoadTransformer::dynReConfCallback, this, _1, _2);
+        mDynReConfServer.setCallback(f);
       }
 
       virtual bool check(const MetaEvent& event) const {
@@ -94,9 +106,8 @@ namespace aseia_car_sim {
           ostringstream os;
           os << "UTMToRoad: got road nurb description:" << endl;
           mSamples.clear();
-          const size_t sampleSize = 200;
-          for(size_t i=dim*sampleSize/lSize;i<sampleSize-dim*sampleSize/lSize;i++) {
-            mSamples.emplace_back(c.sample(MetaValue((float)i/sampleSize, id::type::Float::value())).transpose());
+          for(size_t i=dim*mSampleSize/lSize;i<mSampleSize-dim*mSampleSize/lSize;i++) {
+            mSamples.emplace_back(c.sample(MetaValue((float)i/mSampleSize, id::type::Float::value())).transpose());
             os << mSamples.back() << endl;
           }
           ::id::type::ID dataType = nurbData.typeId();
@@ -133,7 +144,9 @@ namespace aseia_car_sim {
 
   class UTMToRoad : public Transformation {
     public:
-      UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {}
+      UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {
+
+      }
 
       virtual EventIDs in(EventID goal) const {
         EventID ref({Position::value(), Time::value(), Orientation::value(), Reference::value(), Nurbs::value()});

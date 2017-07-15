@@ -47,6 +47,7 @@
   <depend>nav_msgs</depend>
   <depend>tf2</depend>
   <depend>pluginlib</depend>
+  <depend>dynamic_reconfigure</depend>
 
   <export>
     <aseia_base plugin="${prefix}/transformations.xml"/>
