@@ -22,17 +22,20 @@ using namespace std;
 using namespace id::attribute;
 using namespace ros;
 using namespace Eigen;
+using id::attribute::Time;
 
 map<string, Publisher> pubs;
 
-struct UTMBaseConfig : public BaseConfig {
-  using TimeValueType = Value<double, 1>;
-  using PositionValueType = Value<float, 3>;
+struct EventConfig : public BaseConfig {
+    using TimeValueType = Value<uint32_t, 1>;
+    using TimeScale = Scale<std::ratio<1,1000>>;
+    using PositionValueType = Value<float, 3>;
+    using PositionScale = Scale<std::ratio<1>, 0>;
 };
 
-struct RoadBaseConfig : public BaseConfig {
-  using TimeValueType = Value<double, 1>;
-  using PositionValueType = Value<float, 3>;
+using UTMBaseConfig = EventConfig;
+
+struct RoadBaseConfig : public EventConfig {
   using PositionScale = Scale<std::ratio<1>, 1>;
 };
 
@@ -41,7 +44,8 @@ using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
 using DistAttr = Attribute<Distance, Value<float, 1>, Meter>;
 using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
-using ACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
+using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
+using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
@@ -60,6 +64,8 @@ void handlePoseInput(const PoseEvent& e) {
   msg.pose.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value(),
   msg.pose.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value(),
   msg.header.frame_id = "map";
+  msg.header.stamp.sec = e.attribute(Time()).value()(0,0).value()/1000;
+  msg.header.stamp.nsec = (e.attribute(Time()).value()(0,0).value()%1000)*1000000;
   msg.child_frame_id = "car"+to_string(car);
   it->second.publish(msg);
 }
@@ -122,10 +128,11 @@ void handleRoad(const RoadEvent& e) {
   marker.pose.position.x = e.attribute(Reference()).value()(0,0).value();
   marker.pose.position.y = e.attribute(Reference()).value()(1,0).value();
   marker.pose.position.z = e.attribute(Reference()).value()(2,0).value();
-  marker.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value(),
-  marker.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value(),
-  marker.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value(),
-  marker.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value(),
+  marker.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value();
+  marker.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value();
+  marker.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value();
+  marker.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value();
+  marker.lifetime = ros::Duration(60);
   marker.color.a = 1.0;
   marker.color.b = 1.0;
   marker.color.g = 1.0;
@@ -157,9 +164,23 @@ void handleRoad(const RoadEvent& e) {
   it->second.publish(marker);
 }
 
-void handleACC(const ACCEvent& e) {
+void handleRoadACC(const RoadACCEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
-  string topic = "/car"+to_string(car)+"/acc";
+  string topic = "/car"+to_string(car)+"/accRoad";
+  auto it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
+  }
+  ROS_DEBUG_STREAM("Road ACC Message: " << e);
+  std_msgs::Float32 msg;
+  msg.data = e.attribute(Distance()).value()(0,0).value();
+  it->second.publish(msg);
+}
+
+void handleUTMACC(const UTMACCEvent& e) {
+  uint32_t car = e.attribute(Object()).value()(0.0);
+  string topic = "/car"+to_string(car)+"/accUTM";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
     NodeHandle nh;
@@ -175,7 +196,8 @@ int main(int argc, char** argv) {
   SensorEventSubscriber<aseia_car_sim::PoseEvent> poseSub(aseia_car_sim::handlePoseInput);
   SensorEventSubscriber<aseia_car_sim::RoadPoseEvent> roadPoseSub(aseia_car_sim::handleRoadInput);
   SensorEventSubscriber<aseia_car_sim::RoadEvent> roadSub(aseia_car_sim::handleRoad);
-  SensorEventSubscriber<aseia_car_sim::ACCEvent> accSub(aseia_car_sim::handleACC);
+  SensorEventSubscriber<aseia_car_sim::RoadACCEvent> roadAccSub(aseia_car_sim::handleRoadACC);
+  SensorEventSubscriber<aseia_car_sim::UTMACCEvent> utmAccSub(aseia_car_sim::handleUTMACC);
   while(ros::ok()) ros::spin();
   return 0;
 }
