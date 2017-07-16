@@ -5,37 +5,60 @@
 #include <MetaEvent.h>
 #include <IO.h>
 
+
+#include <map>
+
 namespace aseia_car_sim {
 
   using namespace std;
   using namespace ::id::attribute;
 
-  class VirtACCTransformer : public BufferedTransformer {
+  class VirtACCTransformer : public Transformer {
+    private:
+      using Storage = vector<MetaEvent>;
+      Storage mStorage;
     public:
       VirtACCTransformer(const EventType& out, const EventTypes& in)
-        : BufferedTransformer(out, in, AbstractPolicy()) {
+        : Transformer(out, in) {
       }
 
       virtual bool check(const MetaEvent& event) const {
         return true;
       }
 
-      virtual Events execute(const EventPtrs& inputs) const {
-        const MetaAttribute& oID0 = *inputs[0]->attribute(Object::value());
-        const MetaAttribute& oID1 = *inputs[1]->attribute(Object::value());
-        const MetaAttribute& pos0 = *inputs[0]->attribute(Position::value());
-        const MetaAttribute& pos1 = *inputs[1]->attribute(Position::value());
-        const MetaAttribute& time0 = *inputs[0]->attribute(Time::value());
-        const MetaAttribute& time1 = *inputs[1]->attribute(Time::value());
-        if(oID0 == oID1 || (time0 - time1).value().norm() < 100)
-          return {};
-        MetaEvent e0(out()), e1(out());
-        e0=*inputs[0];
-        e1=*inputs[1];
-        MetaValue dist = (pos0.value()-pos1.value()).norm();
-        e0.attribute(Distance::value())->value()=dist;
-        e1.attribute(Distance::value())->value()=dist;
-        return {e0, e1};
+      virtual Events operator()(const MetaEvent& e) {
+
+        const MetaAttribute& oID0 = *e.attribute(Object::value());
+        const MetaAttribute& pos0 = *e.attribute(Position::value());
+        const MetaAttribute& time0 = *e.attribute(Time::value());
+
+        auto it = find_if(mStorage.begin(), mStorage.end(), [oID0](const MetaEvent& e){ return *e.attribute(Object::value())==oID0; });
+        if(it == mStorage.end())
+          mStorage.push_back(e);
+        else
+          *it = e;
+
+        Events events;
+
+        for(const MetaEvent& v: mStorage) {
+          const MetaAttribute& oID1 = *v.attribute(Object::value());
+          const MetaAttribute& pos1 = *v.attribute(Position::value());
+          const MetaAttribute& time1 = *v.attribute(Time::value());
+
+          if(oID0 == oID1)// || (time0 - time1).value().norm() < 100)
+            continue;
+          ROS_DEBUG_STREAM("Producing Event for pair: " << oID0 << ", " << oID1);
+          MetaEvent e0(out());
+          e0=e;
+          e0.attribute(Distance::value())->value()=(pos0.value()-pos1.value()).norm();
+          ROS_DEBUG_STREAM("Insert Event in output queue: " << e0);
+          if(e0.attribute(Distance::value())->value()<200)
+            events.push_back(e0);
+        }
+        ROS_DEBUG_STREAM("Outputting resulting events");
+        for(const MetaEvent& res : events)
+          ROS_DEBUG_STREAM("Resulting Events:" << res);
+        return events;
       }
 
       virtual  void print(ostream& o) const {
