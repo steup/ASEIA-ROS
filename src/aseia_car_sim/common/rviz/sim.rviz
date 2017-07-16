@@ -18,10 +18,8 @@ Panels:
         - /Odometry2/Shape1
         - /Axes1
         - /Marker2
-        - /Marker2/Status1
         - /Marker2/Namespaces1
         - /Marker3
-        - /Marker3/Status1
       Splitter Ratio: 0.5
     Tree Height: 855
   - Class: rviz/Selection
@@ -69,7 +67,7 @@ Visualization Manager:
       Marker Topic: /roads/1
       Name: Marker
       Namespaces:
-        roads: true
+        {}
       Queue Size: 100
       Value: true
     - Angle Tolerance: 0.100000001
@@ -152,7 +150,7 @@ Visualization Manager:
       Marker Topic: /car1/roadMarker
       Name: Marker
       Namespaces:
-        carOnRoad: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -160,7 +158,7 @@ Visualization Manager:
       Marker Topic: /car0/roadMarker
       Name: Marker
       Namespaces:
-        carOnRoad: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true

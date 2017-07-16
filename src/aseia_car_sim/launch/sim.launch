@@ -1,13 +1,17 @@
 <launch>
   <arg name="base_speed" default="10"/>
+  <group ns="car0">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="0"/>
-    <arg name="speed" value="$(eval base_speed+5)"/>
+    <arg name="speed" value="$(eval base_speed+2)"/>
   </include>
+  </group>
+  <group ns="car1">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="1"/>
     <arg name="speed" value="$(eval base_speed)"/>
   </include>
+  </group>
   <node name="sim" pkg="aseia_car_sim" type="simulation" launch-prefix="perf stat "/>
   <node name="bridge" pkg="aseia_car_sim" type="bridge"/>
   <node name="road" pkg="aseia_car_sim" type="road"/>

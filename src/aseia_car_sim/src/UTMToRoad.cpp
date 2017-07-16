@@ -32,7 +32,7 @@ namespace aseia_car_sim {
         size_t minI=0;
         ROS_DEBUG_STREAM("Input Position " << posIn);
         for(size_t i=0; i<mSamples.size(); i++) {
-          MetaValue temp=(posIn-mSamples[i]);
+          MetaValue temp=(posIn-mSamples[i]).block(0,0,2,1);
           if(temp.norm()<min) {
             minI=i;
             min = temp.norm();

@@ -38,7 +38,7 @@ class NurbsPublisher {
     }
   public:
     NurbsPublisher()
-      : mTimer(ros::NodeHandle().createTimer(ros::Duration(30), &NurbsPublisher::periodic, this))
+      : mTimer(ros::NodeHandle().createTimer(ros::Duration(300), &NurbsPublisher::periodic, this))
     {
       mRef.attribute(Position()).value()={{{0, 0}},
                                           {{0, 0}},

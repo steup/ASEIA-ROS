@@ -104,9 +104,9 @@ void handleRoadInput(const RoadPoseEvent& e) {
   visualization_msgs::Marker m;
   float offset = e.attribute(Position()).value()(2,0).value()/nurbLength*nurbPoints.size();
   size_t prePoint=(size_t)(offset), postPoint=(prePoint+1)%nurbPoints.size();
-  double factor=(offset-prePoint)/nurbPoints.size();
+  double factor=offset-prePoint;
   NURBCurve::Point result = nurbPoints[prePoint]+(nurbPoints[postPoint]-nurbPoints[prePoint])*factor;
-  ROS_DEBUG_STREAM("Recomputed road position: #" << offset << ": " << result);
+  ROS_DEBUG_STREAM("Recomputed road position: #" << offset << ", factor: " << factor);
   m.pose.position.x = result(0,0);
   m.pose.position.y = result(0,1);
   m.pose.position.z = result(0,2);
