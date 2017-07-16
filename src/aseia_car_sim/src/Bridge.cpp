@@ -70,6 +70,9 @@ void handlePoseInput(const PoseEvent& e) {
   it->second.publish(msg);
 }
 
+vector<NURBCurve::Point> nurbPoints;
+float nurbLength;
+
 void handleRoadInput(const RoadPoseEvent& e) {
   ROS_DEBUG_STREAM("Got Road Position Event: " << e);
   uint32_t car = e.attribute(Object()).value()(0,0);
@@ -90,6 +93,41 @@ void handleRoadInput(const RoadPoseEvent& e) {
   }
   msg.data = e.attribute(Position()).value()(1,0).value();
   it->second.publish(msg);
+  
+  if(!nurbPoints.empty()) {
+  topic = "/car"+to_string(car)+"/roadMarker";
+  it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<visualization_msgs::Marker>(topic, 1))).first;
+  }
+  visualization_msgs::Marker m;
+  float offset = e.attribute(Position()).value()(2,0).value()/nurbLength*nurbPoints.size();
+  size_t prePoint=(size_t)(offset), postPoint=(prePoint+1)%nurbPoints.size();
+  double factor=(offset-prePoint)/nurbPoints.size();
+  NURBCurve::Point result = nurbPoints[prePoint]+(nurbPoints[postPoint]-nurbPoints[prePoint])*factor;
+  ROS_DEBUG_STREAM("Recomputed road position: #" << offset << ": " << result);
+  m.pose.position.x = result(0,0);
+  m.pose.position.y = result(0,1);
+  m.pose.position.z = result(0,2);
+  m.pose.orientation.w = 1;
+  m.ns = "carOnRoad";
+  m.header.frame_id="map";
+  uint32_t time = e.attribute(Time()).value()(0,0).value();
+  m.header.stamp = ros::Time(time/1000, (time%1000)*10000000);
+  m.id = car;
+  m.type=visualization_msgs::Marker::SPHERE;
+  m.action = visualization_msgs::Marker::ADD;
+  m.lifetime = ros::Duration(1);
+  m.scale.x = 10;
+  m.scale.y = 10;
+  m.scale.z = 10;
+  m.color.a = 0.5;
+  m.color.r = 0;
+  m.color.g = 1;
+  m.color.b = 0;
+  it->second.publish(m);
+  }
 }
 
 struct NurbsBaseConfig : public BaseConfig {
@@ -152,20 +190,29 @@ void handleRoad(const RoadEvent& e) {
   const size_t lSize = (size_t)e.attribute(Nurbs()).value()(0,2);
   const auto& knots = nurbData.block(1, 3, lSize+1, 1);
   const auto& points = nurbData.block(1, 0, pSize+1, 3);
-  marker.scale.x = 5.0;
+  marker.scale.x = 10.0;
   ROS_DEBUG_STREAM("NURBS:\tdim  : " << dim << endl <<
                          "\tpSize: " << pSize << endl <<
                          "\tlSize: " << lSize << endl <<
                          "\tknots: " << endl << knots << endl <<
                          "\tpoints: " << endl << points);
   NURBCurve c(dim, NURBCurve::KnotsType(knots), NURBCurve::PointsType(points));
+  nurbLength=0;
+  bool first=true;
+  NURBCurve::Point oldP;
+  nurbPoints.clear();
   for(size_t i=300/lSize; i<100-300/lSize; i++) {
       NURBCurve::Point p = c.sample(i/100.0);
+      nurbPoints.push_back(p);
       geometry_msgs::Point temp;
       temp.x=p(0,0);
       temp.y=p(0,1);
       temp.z=p(0,2);
       marker.points.emplace_back(move(temp));
+      if(!first)
+        nurbLength += (p-oldP).norm();
+      oldP = p;
+      first=false;
   }
   ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);
   it->second.publish(marker);
