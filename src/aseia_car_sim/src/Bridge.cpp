@@ -42,10 +42,13 @@ struct RoadBaseConfig : public EventConfig {
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
 using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
 using DistAttr = Attribute<Distance, Value<float, 1>, Meter>;
+using SpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second())>;
 using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
 using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
+using UTMSpeedEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<SpeedAttr>::type;
+using RoadSpeedEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<SpeedAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
@@ -244,6 +247,32 @@ void handleUTMACC(const UTMACCEvent& e) {
   msg.data = e.attribute(Distance()).value()(0,0);
   it->second.publish(msg);
 }
+
+void handleUTMSpeed(const UTMSpeedEvent& e) {
+  uint32_t car = e.attribute(Object()).value()(0.0);
+  string topic = "/car"+to_string(car)+"/speedUTM";
+  auto it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
+  }
+  std_msgs::Float32 msg;
+  msg.data = e.attribute(Speed()).value()(0,0);
+  it->second.publish(msg);
+}
+
+void handleRoadSpeed(const RoadSpeedEvent& e) {
+  uint32_t car = e.attribute(Object()).value()(0.0);
+  string topic = "/car"+to_string(car)+"/speedRoad";
+  auto it = pubs.find(topic);
+  if(it == pubs.end()) {
+    NodeHandle nh;
+    it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
+  }
+  std_msgs::Float32 msg;
+  msg.data = e.attribute(Speed()).value()(0,0);
+  it->second.publish(msg);
+}
 }
 int main(int argc, char** argv) {
   ros::init(argc, argv, "aseia_bridge");
@@ -252,6 +281,8 @@ int main(int argc, char** argv) {
   SensorEventSubscriber<aseia_car_sim::RoadEvent> roadSub(aseia_car_sim::handleRoad);
   SensorEventSubscriber<aseia_car_sim::RoadACCEvent> roadAccSub(aseia_car_sim::handleRoadACC);
   SensorEventSubscriber<aseia_car_sim::UTMACCEvent> utmAccSub(aseia_car_sim::handleUTMACC);
+  SensorEventSubscriber<aseia_car_sim::RoadSpeedEvent> roadSpeedSub(aseia_car_sim::handleRoadSpeed);
+  SensorEventSubscriber<aseia_car_sim::UTMSpeedEvent> utmSpeedSub(aseia_car_sim::handleUTMSpeed);
   while(ros::ok()) ros::spin();
   return 0;
 }
