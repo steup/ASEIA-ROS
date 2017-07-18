@@ -15,9 +15,9 @@ class SensorEventPublisher : public AbstractPubSub<SensorEvent>{
     ros::Publisher        mPub;
 
   public:
-    SensorEventPublisher(size_t size=1)
+    SensorEventPublisher(size_t size=1, bool latch=false)
       : Base(Base::Type::publisher) {
-        mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(this->topic(), size);
+        mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(this->topic(), size, latch);
     }
 
     void publish(SensorEvent& e) {
