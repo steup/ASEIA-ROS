@@ -5,8 +5,7 @@
     <arg name="VREPScene" value="$(find aseia_car_sim)/common/scenes/$(arg scenario).ttt"/>
     <arg name="VREPPath" value="~/software/vrep"/>
   </include>
-  <include file="$(find aseia_base)/launch/manager.launch">
-    <arg name="transformations" value="aseia_car_sim::UTMToRoad aseia_car_sim::VirtACC"/>
+  <include file="$(find aseia_car_sim)/launch/manager.launch">
     <arg name="debug" value="$(arg debug)"/>
   </include>
 </launch>

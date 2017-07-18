@@ -1,0 +1,10 @@
+<launch>
+  <arg name="debug" default="false"/>
+  <include file="$(find aseia_base)/launch/manager.launch">
+    <arg name="transformations" value="aseia_car_sim::UTMToRoad
+                                       aseia_car_sim::VirtACC
+                                       aseia_car_sim::VirtSpeed
+                                       aseia_car_sim::VirtACCKalman"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+</launch>

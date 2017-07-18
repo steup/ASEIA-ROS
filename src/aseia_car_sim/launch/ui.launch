@@ -1,5 +1,5 @@
 <launch>
-  <node name="graphs" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find aseia_car_sim)/common/rqt/graphs.perspective -p Graphs"/>
-  <node name="debug"  pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find aseia_base)/common/rqt/debug.perspective -p Debug"/>
+  <node name="graphs" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find aseia_car_sim)/common/rqt/graphs.perspective"/>
+  <node name="debug"  pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find aseia_base)/common/rqt/debug.perspective"/>
   <node name="RViz"   pkg="rviz"    type="rviz"    args="-d $(find aseia_car_sim)/common/rviz/sim.rviz"/>
 </launch>
