@@ -1,11 +1,15 @@
+#include <pluginlib/class_list_macros.h>
 #include <Transformation.h>
 #include <ID.h>
+#include <BaseEvent.h>
+
+namespace aseia_car_sim {
 
 using namespace std;
 using namespace ::id::attribute;
-class KalmanTransformer : public Transformer {
+class VirtACCKalmanTransformer : public Transformer {
   public:
-    KalmanTransformer(const EventType& goal, const EventTypes& in)
+    VirtACCKalmanTransformer(const EventType& goal, const EventTypes& in)
       : Transformer(goal, in) {
 
     }
@@ -25,12 +29,12 @@ class KalmanTransformer : public Transformer {
     }
 };
 
-class Kalman : public Transformation {
+class VirtACCKalman : public Transformation {
   protected:
     static const EventID sDistID;
     static const EventID sSpeedID;
   public:
-    Kalman() : Transformation(Transformation::Type::homogeneus, 2, sDistID) {
+    VirtACCKalman() : Transformation(Transformation::Type::homogeneus, 2, sDistID) {
 
     }
 
@@ -50,15 +54,16 @@ class Kalman : public Transformation {
     }
 
     virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy) const {
-      return TransPtr(new KalmanTransformer(goal, in));
+      return TransPtr(new VirtACCKalmanTransformer(goal, in));
     }
 
     virtual void print(ostream& o) const {
       o << "Kalman Transformation";
     }
-} kalmanObj;
+};
 
-const EventID Kalman::sDistID=EventID({Position::value(), Time::value(), Distance::value()});
-const EventID Kalman::sSpeedID=EventID({Position::value(), Time::value(), Speed::value()});
+const EventID VirtACCKalman::sDistID=EventID(BaseEvent<>())*Distance::value();
+const EventID VirtACCKalman::sSpeedID=EventID(BaseEvent<>())*Speed::value();
+}
 
-const Transformation& kalman=kalmanObj;
+PLUGINLIB_EXPORT_CLASS(aseia_car_sim::VirtACCKalman, Transformation)

@@ -9,4 +9,14 @@
     Transformation of Position Information to Distance Information
   </description>
   </class>
+  <class type="aseia_car_sim::VirtSpeed" base_class_type="Transformation">
+  <description>
+    Transformation of Position Information to Speed Information
+  </description>
+  </class>
+  <class type="aseia_car_sim::VirtACCKalman" base_class_type="Transformation">
+  <description>
+    Transformation to fuse multiple ACC sources
+  </description>
+  </class>
 </library>
