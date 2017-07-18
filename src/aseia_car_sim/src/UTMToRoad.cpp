@@ -22,6 +22,7 @@ namespace aseia_car_sim {
       MetaValue mRoadLength;
       MetaValue mNurbPos;
       MetaValue mNurbOri;
+      MetaEvent mNurbEvent;
       std::vector<MetaNURBCurve::Point> mSamples;
       bool mCurveReady=false;
       size_t mSampleSize = 100;
@@ -59,7 +60,8 @@ namespace aseia_car_sim {
 
       void dynReConfCallback(NurbsConfig &config, uint32_t level) {
         ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.int_param);
-          mSampleSize = config.int_param;
+        mSampleSize = config.int_param;
+        this->operator()(mNurbEvent);
       }
 
     public:
@@ -95,6 +97,7 @@ namespace aseia_car_sim {
             ROS_ERROR_STREAM("Invalid Road reference received: dropping it!");
             return {};
           }
+          mNurbEvent = event;
           mNurbPos = mPosPtr->value();
           mNurbOri = mOriPtr->value();
           const MetaValue& nurbData = mNurbPtr->value();

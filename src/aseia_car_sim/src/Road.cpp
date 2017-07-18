@@ -28,35 +28,29 @@ class NurbsPublisher {
                             ::append<Ref>::type
                             ::append<NurbData>::type
                             ::append<Ori>::type;
-    ros::Timer mTimer;
     SensorEventPublisher<NurbsReference> mPub;
-    NurbsReference mRef;
 
-    void periodic(const ros::TimerEvent& e){
-      mRef.attribute(Time()).value()={{{(uint32_t)ros::Time::now().toSec(), 0}}};
-      mPub.publish(mRef);
-    }
   public:
-    NurbsPublisher()
-      : mTimer(ros::NodeHandle().createTimer(ros::Duration(300), &NurbsPublisher::periodic, this))
-    {
-      mRef.attribute(Position()).value()={{{0, 0}},
+    NurbsPublisher() : mPub(1, true) {
+      NurbsReference ref;
+      ref.attribute(Time()).value()={{{(uint32_t)ros::Time::now().toSec(), 0}}};
+      ref.attribute(Position()).value()={{{0, 0}},
                                           {{0, 0}},
                                           {{0, 0}}
                                           };
-      mRef.attribute(Reference()).value()={{{0.0f, 0}},
+      ref.attribute(Reference()).value()={{{0.0f, 0}},
                                            {{0.0f, 0}},
                                            {{-97.0f, 0}}
                                           };
       Eigen::Quaternionf q =   Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitX())
                              * Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitY())
                              * Eigen::AngleAxisf(0.0f*M_PI/180, Eigen::Vector3f::UnitZ());
-      mRef.attribute(Orientation()).value()={{{q.x(), 0}},
+      ref.attribute(Orientation()).value()={{{q.x(), 0}},
                                              {{q.y(), 0}},
                                              {{q.z(), 0}},
                                              {{q.w(), 0}}
                                             };
-      mRef.attribute(Nurbs()).value()={{{   3       }, {  27       }, { 31       }, {5.0     }},
+      ref.attribute(Nurbs()).value()={{{   3       }, {  27       }, { 31       }, {5.0     }},
                                        {{-175.381989}, {- 85.089470}, {128.044647}, {0.000000}},
                                        {{-185.792740}, {- 28.090939}, {131.982025}, {0.033333}},
                                        {{-148.693283}, {-  8.011072}, {141.422775}, {0.066667}},
@@ -157,6 +151,7 @@ class NurbsPublisher {
                                        {{   0.000000}, {   0.000000}, {  0.000000}, {0.0     }},
                                        {{   0.000000}, {   0.000000}, {  0.000000}, {0.0     }},
                                       };
+      mPub.publish(ref);
     }
 };
 }
