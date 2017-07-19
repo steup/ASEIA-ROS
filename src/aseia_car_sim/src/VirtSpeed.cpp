@@ -1,9 +1,13 @@
 #include <pluginlib/class_list_macros.h>
+#include <ros/console.h>
 #include <Transformation.h>
 #include <ID.h>
+#include <IO.h>
 #include <BaseEvent.h>
 
 namespace aseia_car_sim {
+
+  static const char* transName = "virt_speed";
 
 using namespace std;
 using namespace ::id::attribute;
@@ -19,30 +23,35 @@ class VirtSpeedTransformer : public Transformer {
     }
 
     virtual bool check(const MetaEvent& e) const {
-      return true;
+      return e[Position()].value().uncertainty().norm() < 10 && e[Time()].value().uncertainty().norm() < 10;
     }
 
     virtual Events operator()(const MetaEvent& e0) {
+      if(!check(e0))
+        return {};
       const MetaAttribute& oID0 = e0[Object()];
       auto it = find_if(mStorage.begin(), mStorage.end(),
                         [&oID0](const MetaEvent& e){
                           return e[Object()]==oID0;
                         });
       if(it == mStorage.end()) {
+        ROS_DEBUG_STREAM_NAMED(transName, "Adding event for object id: " << oID0.value());
         mStorage.push_back(e0);
         return {};
       }
 
       MetaEvent& e1 = *it;
 
-      if(e0[Time()] >= e1[Time()] ||
-        (e0[Time()] - e1[Time()]) < 1 ) {
+      if(e0[Time()] <= e1[Time()] ||
+        (e0[Time()] - e1[Time()]) < 1000 ) {
+        ROS_DEBUG_STREAM_NAMED(transName, "Position events not compatible\n" << e0 << "\nand\n " << e1);
         return {};
       }
 
       MetaEvent eOut(out());
-      eOut=(e0+e1)/2;
+      eOut=e0;
       eOut[Speed()]=(e0[Position()]-e1[Position()]).norm()/(e0[Time()]-e1[Time()]);
+      ROS_DEBUG_STREAM_NAMED(transName, "Computing speed event for object id: " << oID0.value() << "from\n" << e0 << "\nand\n" << e1 << "\nto\n" << eOut);
       e1 = e0;
       return {eOut};
     }

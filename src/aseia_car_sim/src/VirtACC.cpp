@@ -10,6 +10,8 @@
 
 namespace aseia_car_sim {
 
+  static const char* transName = "virt_acc";
+
   using namespace std;
   using namespace ::id::attribute;
 
@@ -29,8 +31,6 @@ namespace aseia_car_sim {
       virtual Events operator()(const MetaEvent& e) {
 
         const MetaAttribute& oID0 = *e.attribute(Object::value());
-        const MetaAttribute& pos0 = *e.attribute(Position::value());
-        const MetaAttribute& time0 = *e.attribute(Time::value());
 
         auto it = find_if(mStorage.begin(), mStorage.end(), [oID0](const MetaEvent& e){ return *e.attribute(Object::value())==oID0; });
         if(it == mStorage.end())
@@ -42,22 +42,20 @@ namespace aseia_car_sim {
 
         for(const MetaEvent& v: mStorage) {
           const MetaAttribute& oID1 = *v.attribute(Object::value());
-          const MetaAttribute& pos1 = *v.attribute(Position::value());
-          const MetaAttribute& time1 = *v.attribute(Time::value());
 
           if(oID0 == oID1)// || (time0 - time1).value().norm() < 100)
             continue;
-          ROS_DEBUG_STREAM("Producing Event for pair: " << oID0 << ", " << oID1);
+          ROS_DEBUG_STREAM_NAMED(transName, "Producing Event for pair: " << oID0 << ", " << oID1);
           MetaEvent e0(out());
           e0=e;
-          e0.attribute(Distance::value())->value()=(pos0.value()-pos1.value()).norm();
-          ROS_DEBUG_STREAM("Insert Event in output queue: " << e0);
-          if(e0.attribute(Distance::value())->value()<200)
+          e0[Distance()]=(e0[Position()]-v[Position()]).norm();
+          ROS_DEBUG_STREAM_NAMED(transName, "Insert Event in output queue: " << e0);
+          if(e0[Distance()].value().value()<200)
             events.push_back(e0);
         }
-        ROS_DEBUG_STREAM("Outputting resulting events");
+        ROS_DEBUG_STREAM_NAMED(transName, "Outputting resulting events");
         for(const MetaEvent& res : events)
-          ROS_DEBUG_STREAM("Resulting Events:" << res);
+          ROS_DEBUG_STREAM_NAMED(transName, "Resulting Events:" << res);
         return events;
       }
 
@@ -71,11 +69,11 @@ namespace aseia_car_sim {
       static EventID mGoal;
     public:
       VirtACC() : Transformation(Transformation::Type::heterogeneus, 2, mGoal) {
-        ROS_DEBUG_STREAM("VirtACC Transformation with goal id: " << mGoal);
+        ROS_DEBUG_STREAM_NAMED(transName, "VirtACC Transformation with goal id: " << mGoal);
       }
 
       virtual EventIDs in(EventID goal) const {
-        ROS_DEBUG_STREAM("Testing VirtACC against goal: " << goal);
+        ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
         if(goal == mGoal) {
           ROS_INFO_STREAM("VirtACC fits");
           return {goal/=Distance::value(), goal/=Distance::value()};
@@ -84,14 +82,14 @@ namespace aseia_car_sim {
       };
 
       virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
-        ROS_DEBUG_STREAM("Testing VirtACC against goal: " << goal);
+        ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
         if(EventID(goal) != mGoal)
           return {};
 
         EventType in = goal;
         in.remove(Distance::value());
 
-        ROS_DEBUG_STREAM("VirtACC fits with in type: " << in);
+        ROS_DEBUG_STREAM_NAMED(transName, "VirtACC fits with in type: " << in);
         return {in, in};
       }
 

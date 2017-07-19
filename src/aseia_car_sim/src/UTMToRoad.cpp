@@ -10,7 +10,10 @@
 #include <MetaEvent.h>
 #include <IO.h>
 
+
 namespace aseia_car_sim {
+
+static const char* transName = "utm_to_road";
 
   using namespace std;
   using namespace ::id::attribute;
@@ -31,7 +34,7 @@ namespace aseia_car_sim {
         posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
-        ROS_DEBUG_STREAM("Input Position " << posIn);
+        ROS_DEBUG_STREAM_NAMED(transName, "Input Position " << posIn);
         for(size_t i=0; i<mSamples.size(); i++) {
           MetaValue temp=(posIn-mSamples[i]).block(0,0,2,1);
           if(temp.norm()<min) {
@@ -39,7 +42,7 @@ namespace aseia_car_sim {
             min = temp.norm();
           }
         }
-        ROS_DEBUG_STREAM("Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
+        ROS_DEBUG_STREAM_NAMED(transName, "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
         MetaValue d = mSamples[minI]-posIn;
         MetaValue n = mSamples[minI]-mSamples[(minI-1)%mSamples.size()];
         MetaValue t = d.dot(n)/n.dot(n);
@@ -50,7 +53,7 @@ namespace aseia_car_sim {
         MetaValue offset = (t*n-d).norm();
         MetaValue u({{{0, (t*n).norm().get(0,0)}}}, ((ValueType)offset).typeId());
         offset+=u;
-        ROS_DEBUG_STREAM("Lane offset: \n\td = " << d.transpose() << "\n\tn: " << n.transpose() << "\n\to: " << offset);
+        ROS_DEBUG_STREAM_NAMED(transName, "Lane offset: \n\td = " << d.transpose() << "\n\tn: " << n.transpose() << "\n\to: " << offset);
         posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
         if((posIn(0,0)-n(1,0)*posIn(1,0))<0)
           posIn.block(1,0, offset);
@@ -104,7 +107,7 @@ namespace aseia_car_sim {
           const size_t dim = (size_t)nurbData.get(0,0);
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
-          ROS_DEBUG_STREAM("Got Road description with: " << endl << "\tDimension: " << dim << endl <<"\t#Points: " << pSize << "\t#Knots: " << lSize);
+          ROS_DEBUG_STREAM_NAMED(transName, "Got Road description with: " << endl << "\tDimension: " << dim << endl <<"\t#Points: " << pSize << "\t#Knots: " << lSize);
           MetaNURBCurve c(dim, move(nurbData.block(1, 3, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
           ostringstream os;
           os << "UTMToRoad: got road nurb description:" << endl;
@@ -124,7 +127,7 @@ namespace aseia_car_sim {
             first=false;
           }
           os << "\tLenght: " << length;
-          ROS_DEBUG_STREAM(os.str());
+          ROS_DEBUG_STREAM_NAMED(transName, os.str());
           mRoadLength = move(length);
           mCurveReady = true;
           return {};
@@ -132,6 +135,7 @@ namespace aseia_car_sim {
         if(attr->scale().reference() == mInRef && mCurveReady) {
           MetaEvent e = event;
           e.attribute(Position::value())->scale().reference(mOutRef);
+          e.attribute(Time::value())->scale().reference(mOutRef);
           MetaValue& in     = e.attribute(Position::value())->value();
           MetaValue& oriIn  = e.attribute(Orientation::value())->value();
           nurbsCoord(in, oriIn);
@@ -170,15 +174,16 @@ namespace aseia_car_sim {
 
         EventType orig = goal;
         orig.attribute(Position::value())->scale().reference(providedPosAT->scale().reference());
+        orig.attribute(Time::value())->scale().reference(providedPosAT->scale().reference());
         //todo handle possible orientation
         EventType reference;
         reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
         reference.add(AttributeType(Orientation::value(), ValueType(type, 4, 1, true), providedPosAT->scale(), Radian()));
-        reference.add(*goalTimeAT);
+        reference.add(provided[Time()]);
         reference.add(AttributeType(Nurbs::value(), ValueType(type, 100, 4, false), goalPosAT->scale(), providedPosAT->unit()));
 
         auto input = {orig, reference};
-        ROS_DEBUG_STREAM("UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
+        ROS_DEBUG_STREAM_NAMED(transName, "UTMToRoad [" << goal << ", " << provided << "] -> [" << orig << ", " << reference << "]");
         return input;
       }
 
