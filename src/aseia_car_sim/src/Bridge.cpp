@@ -37,18 +37,21 @@ using UTMBaseConfig = EventConfig;
 
 struct RoadBaseConfig : public EventConfig {
   using PositionScale = Scale<std::ratio<1>, 1>;
+    using TimeScale = Scale<std::ratio<1,1000>, 1>;
 };
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
 using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
-using DistAttr = Attribute<Distance, Value<float, 1>, Meter>;
-using SpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second())>;
+using RoadDistAttr = Attribute<Distance, Value<float, 1>, Meter, Scale<std::ratio<1>, 1>>;
+using RoadSpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second()), Scale<std::ratio<1>, 1>>;
+using UTMDistAttr = Attribute<Distance, Value<float, 1>, Meter>;
+using UTMSpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second())>;
 using PoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
 using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
-using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
-using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<DistAttr>::type;
-using UTMSpeedEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<SpeedAttr>::type;
-using RoadSpeedEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<SpeedAttr>::type;
+using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<UTMDistAttr>::type;
+using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<RoadDistAttr>::type;
+using UTMSpeedEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<UTMSpeedAttr>::type;
+using RoadSpeedEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<RoadSpeedAttr>::type;
 
 void handlePoseInput(const PoseEvent& e) {
   uint32_t car = e.attribute(Object()).value()(0.0);
@@ -222,7 +225,7 @@ void handleRoad(const RoadEvent& e) {
 }
 
 void handleRoadACC(const RoadACCEvent& e) {
-  uint32_t car = e.attribute(Object()).value()(0.0);
+  uint32_t car = e.attribute(Object()).value()(0,0);
   string topic = "/car"+to_string(car)+"/accRoad";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
@@ -236,7 +239,7 @@ void handleRoadACC(const RoadACCEvent& e) {
 }
 
 void handleUTMACC(const UTMACCEvent& e) {
-  uint32_t car = e.attribute(Object()).value()(0.0);
+  uint32_t car = e.attribute(Object()).value()(0,0);
   string topic = "/car"+to_string(car)+"/accUTM";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
@@ -249,7 +252,8 @@ void handleUTMACC(const UTMACCEvent& e) {
 }
 
 void handleUTMSpeed(const UTMSpeedEvent& e) {
-  uint32_t car = e.attribute(Object()).value()(0.0);
+  ROS_DEBUG_STREAM("Got utm speed event:\n" << e);
+  uint32_t car = e[Object()].value()(0,0);
   string topic = "/car"+to_string(car)+"/speedUTM";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
@@ -257,12 +261,13 @@ void handleUTMSpeed(const UTMSpeedEvent& e) {
     it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
   }
   std_msgs::Float32 msg;
-  msg.data = e.attribute(Speed()).value()(0,0);
+  msg.data = e[Speed()].value()(0,0);
   it->second.publish(msg);
 }
 
 void handleRoadSpeed(const RoadSpeedEvent& e) {
-  uint32_t car = e.attribute(Object()).value()(0.0);
+  ROS_DEBUG_STREAM("Got road speed event:\n" << e);
+  uint32_t car = e[Object()].value()(0,0);
   string topic = "/car"+to_string(car)+"/speedRoad";
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
@@ -270,7 +275,7 @@ void handleRoadSpeed(const RoadSpeedEvent& e) {
     it = pubs.emplace(topic, Publisher(nh.advertise<std_msgs::Float32>(topic, 1))).first;
   }
   std_msgs::Float32 msg;
-  msg.data = e.attribute(Speed()).value()(0,0);
+  msg.data = e[Speed()].value()(0,0);
   it->second.publish(msg);
 }
 }
