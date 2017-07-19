@@ -63,6 +63,20 @@ class RosChannel : public Channel {
       }
     }
 
+    virtual void error(Errors error, const MetaEvent& e) const {
+      std::string errorStr;
+      switch(error){
+        case(Errors::InvalidEvent)    : errorStr = "Event invalid";
+                                       break;
+        case(Errors::MissingAttribute): errorStr = "Event incomplete";
+                                       break;
+        case(Errors::IncompatibleType): errorStr = "Event type inconvertible to target Event Type";
+                                       break;
+        default                       : errorStr = "Unknown error";
+      }
+      ROS_ERROR_STREAM_NAMED("ros_channel", *this << " expecting event of type:\n" << mTrans->out() << "Error: " << errorStr << " on generated Event\n" << e << "\nof type\n" << (EventType)e);
+    }
+
     virtual void publishEvent(const MetaEvent& e) const {
       aseia_base::SensorEvent sE;
       Serializer<decltype(back_inserter(sE.event))> s(back_inserter(sE.event));
