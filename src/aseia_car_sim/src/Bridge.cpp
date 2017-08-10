@@ -167,7 +167,7 @@ void handleRoad(const RoadEvent& e) {
   auto it = pubs.find(topic);
   if(it == pubs.end()) {
     NodeHandle nh;
-    it = pubs.emplace(topic, Publisher(nh.advertise<visualization_msgs::Marker>(topic, 1))).first;
+    it = pubs.emplace(topic, Publisher(nh.advertise<visualization_msgs::Marker>(topic, 1, true))).first;
   }
   visualization_msgs::Marker marker;
   marker.header.frame_id = "map";
@@ -183,7 +183,7 @@ void handleRoad(const RoadEvent& e) {
   marker.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value();
   marker.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value();
   marker.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value();
-  marker.lifetime = ros::Duration(60);
+  //marker.lifetime = ros::Duration(60);
   marker.color.a = 1.0;
   marker.color.b = 1.0;
   marker.color.g = 1.0;
