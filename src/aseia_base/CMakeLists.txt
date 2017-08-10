@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 ## System dependencies are found with CMake's conventions
+find_package(aseiaIO REQUIRED)
 find_package(aseia REQUIRED)
 
 add_definitions(-std=c++11 -Wall -g) #-Wextra)
@@ -83,9 +84,8 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-# LIBRARIES aseia
- CATKIN_DEPENDS roscpp
-  DEPENDS aseia_base_generate_messages_cpp aseia
+  CATKIN_DEPENDS roscpp
+  DEPENDS aseia_base_generate_messages_cpp aseiaIO
 )
 
 ###########
@@ -94,7 +94,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include ${catkin_INCLUDE_DIRS} ${aseia_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${aseiaIO_INCLUDE_DIRS})
 
 ## Declare a cpp library
 # add_library(aseia_base
