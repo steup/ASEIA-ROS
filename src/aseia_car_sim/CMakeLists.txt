@@ -6,12 +6,18 @@ add_definitions(-std=c++11 -Wall -g)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   nav_msgs
+  std_msgs
   tf
   pluginlib
   dynamic_reconfigure
   aseia_base
   vrep_plugin
   vrep_common
+)
+
+add_message_files(
+  FILES
+  EventData.msg
 )
 
 add_service_files(
@@ -39,6 +45,7 @@ add_library(CarSimTransformations src/UTMToRoad.cpp
 add_dependencies(CarSimTransformations ${PROJECT_NAME}_gencfg)
 add_executable(simulation src/Simulation.cpp)
 add_executable(bridge src/Bridge.cpp)
+add_dependencies(bridge ${PROJECT_NAME}_generate_messages_cpp)
 add_executable(road src/Road.cpp)
 add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp src/VRepWrapper.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
