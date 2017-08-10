@@ -1,12 +1,34 @@
 #!/usr/bin/env python2
 
 import rospy, os, subprocess32 as subprocess
-
+from threading import Thread
 
 def quit():
     global vrep
     if vrep and vrep.returncode == None:
         vrep.terminate()
+
+class ErrForwarder(Thread):
+    def __init__(self, vrep):
+        Thread.__init__(self)
+        self.vrep = vrep
+
+    def run(self):
+        while(vrep.returncode == None):
+            line = vrep.stderr.readline()
+            if line:
+                rospy.logerr(line)
+
+class OutForwarder(Thread):
+    def __init__(self, vrep):
+        Thread.__init__(self)
+        self.vrep = vrep
+
+    def run(self):
+        while(vrep.returncode == None):
+            line = vrep.stdout.readline()
+            if(line):
+                rospy.logout(line)
 
 if __name__=="__main__":
   global vrep
@@ -51,7 +73,11 @@ if __name__=="__main__":
     os.environ["LD_LIBRARY_PATH"]=vrepPath+":"+os.environ["LD_LIBRARY_PATH"]
     rospy.loginfo("Starting V-REP(%s) with scene %s"%(vrepPath+'/vrep', scene))
     rospy.logdebug("Environment:\n%s"%os.environ)
-    vrep = subprocess.Popen([vrepPath+"/vrep", scene])
+    vrep = subprocess.Popen([vrepPath+"/vrep", scene], 0, None, None, subprocess.PIPE, subprocess.PIPE)
     rospy.on_shutdown(quit)
+    err = ErrForwarder(vrep)
+    out = OutForwarder(vrep)
+    err.start()
+    out.start()
     if vrep.returncode == None:
         vrep.wait()
