@@ -42,8 +42,7 @@ class VirtSpeedTransformer : public Transformer {
 
       MetaEvent& e1 = *it;
 
-      if(e0[Time()] <= e1[Time()] ||
-        (e0[Time()] - e1[Time()]) < 1000 ) {
+      if(e0[Time()] <= e1[Time()]) {
         ROS_DEBUG_STREAM_NAMED(transName, "Position events not compatible\n" << e0 << "\nand\n " << e1);
         return {};
       }

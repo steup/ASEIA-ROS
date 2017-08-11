@@ -31,10 +31,10 @@ static const char* transName = "utm_to_road";
       size_t mSampleSize = 100;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
+        static MetaValue error((ValueType)posIn);
         posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
-        ROS_DEBUG_STREAM_NAMED(transName, "Input Position " << posIn);
         for(size_t i=0; i<mSamples.size(); i++) {
           MetaValue temp=(posIn-mSamples[i]).block(0,0,2,1);
           if(temp.norm()<min) {
@@ -42,23 +42,37 @@ static const char* transName = "utm_to_road";
             min = temp.norm();
           }
         }
+        error *=MetaValue({{{0.9999f}}}, posIn.typeId());
+        error +=MetaValue({{{0.0001f}}}, posIn.typeId())*(posIn-mSamples[minI]);
+        ROS_DEBUG_STREAM_NAMED(transName, "Current error: " << error);
         ROS_DEBUG_STREAM_NAMED(transName, "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
-        MetaValue d = mSamples[minI]-posIn;
-        MetaValue n = mSamples[minI]-mSamples[(minI-1)%mSamples.size()];
-        MetaValue t = d.dot(n)/n.dot(n);
-        if(t>0) {
-          n = mSamples[(minI+1)%mSamples.size()]-mSamples[minI];
-          t = d.dot(n)/n.dot(n);
+        size_t pre  = minI?minI-1:mSamples.size()-1;
+        size_t post = (minI+1)%mSamples.size();
+        const MetaValue& A=mSamples[pre], B=mSamples[minI], C=mSamples[post];
+        int offsetFactor;
+        MetaValue n,d;
+        if((B-A).norm() < (B-C).norm()) {
+          d = posIn-A;
+          n = B-A;
+          offsetFactor = -1;
+        } else {
+          d = posIn-B;
+          n = C-B;
+          offsetFactor = 1;
         }
-        MetaValue offset = (t*n-d).norm();
-        MetaValue u({{{0, (t*n).norm().get(0,0)}}}, ((ValueType)offset).typeId());
-        offset+=u;
-        ROS_DEBUG_STREAM_NAMED(transName, "Lane offset: \n\td = " << d.transpose() << "\n\tn: " << n.transpose() << "\n\to: " << offset);
-        posIn = MetaValue({{{0, 0}}, {{0, 0}}, {{(float)minI/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
-        if((posIn(0,0)-n(1,0)*posIn(1,0))<0)
-          posIn.block(1,0, offset);
-        else
-          posIn.block(1,0, -offset);
+        MetaValue I = n*d.dot(n)/n.dot(n)+B;
+        MetaValue offset = (I-B).norm();
+        offset+=offsetFactor;
+        MetaValue laneOffset = (I-posIn).norm();
+        laneOffset += MetaValue({{{0, offset.get(0,0)}}}, laneOffset.typeId());
+        MetaValue roadPos({{{1.0f, 1.0f/mSamples.size()}}}, posIn.typeId());
+        roadPos*=mRoadLength(minI, 0);
+        roadPos+=offset;
+        posIn = posIn.zero();
+        posIn.set(1,0, laneOffset.get(0,0));
+        posIn.set(2,0, roadPos.get(0,0));
+        ROS_DEBUG_STREAM_NAMED(transName, "road Pose: " << posIn);
+        //MetaValue({{{0, 0}}, {{0, 0}}, {{((float)minI+t.value()(0,0).value())/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
       }
 
       void dynReConfCallback(NurbsConfig &config, uint32_t level) {
@@ -118,17 +132,19 @@ static const char* transName = "utm_to_road";
           }
           ::id::type::ID dataType = nurbData.typeId();
           MetaValue length(dataType, 1);
+          mRoadLength = MetaValue(dataType, mSamples.size());
           bool first = true;
           MetaValue oldSample;
+          size_t i=0;
           for(const auto& p : mSamples) {
             if(!first)
               length += (p-oldSample).norm();
+            mRoadLength.set(i++, 0, length.get(0,0));
             oldSample = p;
             first=false;
           }
-          os << "\tLenght: " << length;
+          os << "\tLenght: " << length << "\tSegments: " << mRoadLength;
           ROS_DEBUG_STREAM_NAMED(transName, os.str());
-          mRoadLength = move(length);
           mCurveReady = true;
           return {};
         }

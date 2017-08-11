@@ -54,7 +54,7 @@ class RosChannel : public Channel {
 
     RosChannel(TransPtr&& trans) : Channel(move(trans)) {
       ros::NodeHandle n;
-      mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1);
+      mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1, true);
       for(const EventType& in : mTrans->in()) {
         for(const EventType& subType : KnowledgeBase::findCompatible(in)) {
           ROS_DEBUG_STREAM("Subscribing to topic: " << topic(subType));
