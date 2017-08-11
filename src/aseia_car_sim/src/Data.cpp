@@ -20,10 +20,6 @@ namespace car {
       using PositionScale = Scale<std::ratio<1>, 0>;
   };
 
-  uint32_t getTime() {
-    return ros::Time::now().toNSec()/1000000;
-  }
-
   using namespace std;
   using namespace Eigen;
   using namespace vrep;

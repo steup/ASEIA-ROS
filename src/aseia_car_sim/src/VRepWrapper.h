@@ -86,4 +86,6 @@ namespace vrep {
       VisionDepthSensor(std::string name, int index) throw(Exception);
       const Distances distances() throw(Exception);
   };
+  
+  uint32_t getTime();
 }

@@ -8,11 +8,13 @@
 #include <vrep_common/simRosGetObjectPose.h>
 #include <vrep_common/simRosSetJointTargetPosition.h>
 #include <vrep_common/simRosSetJointTargetVelocity.h>
+#include <vrep_common/simRosGetInfo.h>
 
 namespace vrep {
 
 using namespace vrep_common;
 using namespace std;
+
 
 const char* Exception::what() const throw() {
   switch(reason) {
@@ -50,6 +52,25 @@ void checkedCall(ros::ServiceClient& srv, simRosGetObjectHandle& data){
       throw Exception(Exception::Reason::badResult);
 }
 
+void checkedCall(ros::ServiceClient& srv, simRosGetInfo& data){
+  if( !srv.call(data)) {
+    if(!srv.exists())
+      throw Exception(Exception::Reason::vrepGone);
+    else
+      throw Exception(Exception::Reason::serviceGone);
+  }
+}
+
+uint32_t getTime() {
+  static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetInfo>("/vrep/simRosGetInfo", true);
+  simRosGetInfo handle;
+  try {
+    checkedCall(srv, handle);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << " Cannot get V-Rep simulation info: " << __FILE__ << ":" << __LINE__;
+  }
+  return (uint32_t)(handle.response.simulationTime*1000);
+}
 
 int getHandle(const string& objectName, int index = -1) {
   static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectHandle >( "/vrep/simRosGetObjectHandle", true);
