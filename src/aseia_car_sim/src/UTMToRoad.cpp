@@ -21,7 +21,7 @@ static const char* transName = "utm_to_road";
 
   class UTMToRoadTransformer : public Transformer {
     private:
-      dynamic_reconfigure::Server<NurbsConfig> mDynReConfServer;
+      static vector<UTMToRoadTransformer*> mInstances;
       uint32_t mInRef, mOutRef;
       MetaValue mRoadLength;
       MetaValue mNurbPos;
@@ -77,21 +77,9 @@ static const char* transName = "utm_to_road";
         //MetaValue({{{0, 0}}, {{0, 0}}, {{((float)minI+t.value()(0,0).value())/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
       }
 
-      void dynReConfCallback(NurbsConfig &config, uint32_t level) {
-        ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.int_param);
-        mSampleSize = config.int_param;
-        this->operator()(mNurbEvent);
-      }
+
 
     public:
-      UTMToRoadTransformer(const EventType& out, const EventTypes& in)
-        : Transformer(out, in) {
-        mOutRef = out.attribute(Position::value())->scale().reference();
-        mInRef = in[0].attribute(Position::value())->scale().reference();
-        dynamic_reconfigure::Server<NurbsConfig>::CallbackType f;
-        f = boost::bind(&UTMToRoadTransformer::dynReConfCallback, this, _1, _2);
-        mDynReConfServer.setCallback(f);
-      }
 
       virtual bool check(const MetaEvent& event) const {
         const MetaAttribute* attr = event.attribute(Position::value());
@@ -165,12 +153,43 @@ static const char* transName = "utm_to_road";
       virtual  void print(ostream& o) const {
         o << "UTM("  << mInRef << ") to Road(" << mOutRef << ") Transformer";
       }
+
+      static void updateSampleSize(size_t newSampleSize) {
+        mSampleSize = newSampleSize;
+        for(UTMToRoadTransformer* ptr : mInstances)
+          ptr->operator()(ptr->mNurbEvent);
+      }
+
+      UTMToRoadTransformer(const EventType& out, const EventTypes& in)
+        : Transformer(out, in) {
+        mOutRef = out.attribute(Position::value())->scale().reference();
+        mInRef = in[0].attribute(Position::value())->scale().reference();
+        mInstances.push_back(this);
+      }
+
+      virtual ~UTMToRoadTransformer() {
+        mInstances.erase(remove(mInstances.begin(), mInstances.end(), this), mInstances.end());
+      }
+
   };
 
-  class UTMToRoad : public Transformation {
-    public:
-      UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {
+  size_t UTMToRoadTransformer::mSampleSize;
+  vector<UTMToRoadTransformer*> UTMToRoadTransformer::mInstances;
 
+  class UTMToRoad : public Transformation {
+    private:
+      dynamic_reconfigure::Server<NurbsConfig> mDynReConfServer;
+      size_t mSampleSize;
+    public:
+      void dynReConfCallback(NurbsConfig &config, uint32_t level) {
+        ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.int_param);
+        mSampleSize = config.int_param;
+        UTMToRoadTransformer::updateSampleSize(mSampleSize);
+      }
+      UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {
+        dynamic_reconfigure::Server<NurbsConfig>::CallbackType f;
+        f = boost::bind(&UTMToRoad::dynReConfCallback, this, _1, _2);
+        mDynReConfServer.setCallback(f);
       }
 
       virtual EventIDs in(EventID goal) const {
