@@ -8,6 +8,7 @@
 #include <Transformation.h>
 
 #include <MetaEvent.h>
+#include <MetaFactory.h>
 #include <IO.h>
 
 
@@ -28,13 +29,14 @@ static const char* transName = "utm_to_road";
       MetaEvent mNurbEvent;
       std::vector<MetaNURBCurve::Point> mSamples;
       bool mCurveReady=false;
-      size_t mSampleSize = 100;
+      static size_t mSampleSize;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
         static MetaValue error((ValueType)posIn);
         posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
+        posIn=MetaFactory::instance().convert((ValueType)mSamples[0], posIn);
         for(size_t i=0; i<mSamples.size(); i++) {
           MetaValue temp=(posIn-mSamples[i]).block(0,0,2,1);
           if(temp.norm()<min) {
