@@ -90,8 +90,9 @@ class Receiver {
       OutEvent msg;
       if(!handleEvent(e, msg))
         return;
-      msg.header.stamp.sec = e.attribute(Time()).value()(0,0).value()/1000;
-      msg.header.stamp.nsec = (e.attribute(Time()).value()(0,0).value()%1000)*1000000;
+      uint32_t sec = e[Time()].value()(0,0).value()/1000UL;
+      uint32_t nsec = (e[Time()].value()(0,0).value()%1000UL)*1000000UL;
+      msg.header.stamp = ros::Time(sec, nsec);
       uint32_t car = e[Object()].value()(0,0);
       const string topic = "/car"+to_string(car)+"/"+mBaseTopic;
       ROS_DEBUG_STREAM("Got " << topic << " event:\n" << e);
@@ -147,7 +148,7 @@ class Odom : public Receiver<EventType, nav_msgs::Odometry> {
     }
 };
 
-class CarAndRoadMarker : public Receiver<RoadPoseEvent, visualization_msgs::Marker> {
+class RoadMarker {
   private:
     SensorEventSubscriber<RoadEvent> mRoadSub;
     Publisher mRoadPub;
@@ -155,12 +156,6 @@ class CarAndRoadMarker : public Receiver<RoadPoseEvent, visualization_msgs::Mark
     float mNurbLength;
 
   public:
-    CarAndRoadMarker()
-      : Receiver<RoadPoseEvent, visualization_msgs::Marker>("roadMarker"),
-        mRoadSub(&CarAndRoadMarker::handleRoad, this),
-        mRoadPub(ros::NodeHandle().advertise<visualization_msgs::Marker>("road", 1, true))
-    {}
-
     void handleRoad(const RoadEvent& e) {
       visualization_msgs::Marker marker;
       marker.header.frame_id = "map";
@@ -217,36 +212,10 @@ class CarAndRoadMarker : public Receiver<RoadPoseEvent, visualization_msgs::Mark
       mRoadPub.publish(marker);
     }
 
-    virtual bool handleEvent(const RoadPoseEvent& e, visualization_msgs::Marker& msg) {
-      if(mNurbPoints.empty())
-        return false;
-
-      float offset = e[Position()].value()(2,0).value()/mNurbLength*mNurbPoints.size();
-      size_t prePoint=(size_t)(offset), postPoint=(prePoint+1)%mNurbPoints.size();
-      double factor=offset-prePoint;
-      NURBCurve::Point result = mNurbPoints[prePoint]+(mNurbPoints[postPoint]-mNurbPoints[prePoint])*factor;
-      ROS_DEBUG_STREAM("Recomputed road position: #" << offset << ", factor: " << factor);
-      msg.pose.position.x = result(0,0);
-      msg.pose.position.y = result(0,1);
-      msg.pose.position.z = result(0,2);
-      msg.pose.orientation.w = 1;
-      msg.ns = "carOnRoad";
-      msg.header.frame_id="map";
-      uint32_t time = e[Time()].value()(0,0).value();
-      msg.header.stamp = ros::Time(time/1000, (time%1000)*10000000);
-      msg.id = e[Object()].value()(0);
-      msg.type=visualization_msgs::Marker::SPHERE;
-      msg.action = visualization_msgs::Marker::ADD;
-      msg.lifetime = ros::Duration(1);
-      msg.scale.x = 10;
-      msg.scale.y = 10;
-      msg.scale.z = 10;
-      msg.color.a = 0.5;
-      msg.color.r = 0;
-      msg.color.g = 1;
-      msg.color.b = 0;
-      return true;
-    }
+    RoadMarker()
+      : mRoadSub(&RoadMarker::handleRoad, this),
+        mRoadPub(ros::NodeHandle().advertise<visualization_msgs::Marker>("road", 1, true))
+    {}
 };
 
 }
@@ -259,7 +228,7 @@ int main(int argc, char** argv) {
   aseia_car_sim::Translator<aseia_car_sim::UTMSpeedEvent , id::attribute::Speed   > utmSpeedSub ("utmSpeed");
   aseia_car_sim::Translator<aseia_car_sim::UTMACCEvent   , id::attribute::Distance> utmACCSub   ("utmACC");
   aseia_car_sim::Odom<aseia_car_sim::UTMPoseEvent> odomSub;
-  aseia_car_sim::CarAndRoadMarker roadSub;
+  aseia_car_sim::RoadMarker roadSub;
   ros::spin();
   return 0;
 }
