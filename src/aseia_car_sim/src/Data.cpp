@@ -6,6 +6,7 @@
 #include "Data.h"
 #include "Car.h"
 #include "VRepWrapper.h"
+#include "Errors.h"
 
 #include <ros/ros.h>
 
@@ -101,6 +102,12 @@ namespace car {
       PoseEvent mEvent;
       SensorEventPublisher<PoseEvent> mPub;
       Object mCarBody;
+      using PosAttr  = PoseEvent::findAttribute<::id::attribute::Position>::type;
+      using TimeAttr = PoseEvent::findAttribute<::id::attribute::Time>::type;
+      using OriAttr  = PoseEvent::findAttribute<::id::attribute::Orientation>::type;
+      NormalError<PosAttr> posError;
+      NormalError<TimeAttr> timeError;
+      //NormalError<OriAttr> oriError;
     public:
       PoseSensor(const std::string& path, const Car& car)
         : Data("Pose", car, true),
@@ -120,10 +127,16 @@ namespace car {
                                         Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());
         const Object::Orientation ori = mCarBody.orientation() * mod;
         ROS_DEBUG_STREAM(*this);
-        mEvent.attribute(id::attribute::Time()).value()(0,0) = { getTime(), 0 };
-        mEvent.attribute(id::attribute::Position()).value() = {{{pos[0], 0}}, {{pos[1], 0}}, {{ pos[2], 0 }}};
-        mEvent.attribute(id::attribute::Orientation()).value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
-        ROS_DEBUG_STREAM("Car" << mCar.index() << " Orientation: (" << ori.x() << ", " << ori.y() << ", " << ori.z() << ", " << ori.w() <<")");
+        TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
+        PosAttr&  posAttr  = mEvent.attribute(id::attribute::Position());
+        OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
+        timeAttr.value()(0,0) = { getTime(), 0 };
+        posAttr.value() = {{{pos[0], 0}}, {{pos[1], 0}}, {{ pos[2], 0 }}};
+        oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
+        timeAttr += timeError();
+        posAttr  += posError();
+        //ori  += oriError;
+        ROS_DEBUG_STREAM("Car" << mCar.index() << ":\n" << mEvent);
         mPub.publish(mEvent);
         return true;
       }

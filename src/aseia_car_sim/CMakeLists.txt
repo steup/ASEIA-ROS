@@ -27,6 +27,7 @@ add_service_files(
 
 generate_dynamic_reconfigure_options(
   cfg/Nurbs.cfg
+  cfg/Error.cfg
 )
 
 generate_messages(
@@ -47,7 +48,8 @@ add_executable(simulation src/Simulation.cpp)
 add_executable(bridge src/Bridge.cpp)
 add_dependencies(bridge ${PROJECT_NAME}_generate_messages_cpp)
 add_executable(road src/Road.cpp)
-add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp src/VRepWrapper.cpp)
+add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp
+  src/VRepWrapper.cpp src/Errors.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
 target_link_libraries(car ${catkin_LIBRARIES})
 target_link_libraries(bridge ${catkin_LIBRARIES})
