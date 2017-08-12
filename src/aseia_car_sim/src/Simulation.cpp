@@ -6,9 +6,12 @@
 #include <vrep_common/simRosStartSimulation.h>
 #include <vrep_common/simRosStopSimulation.h>
 #include <vrep_common/simRosAddStatusbarMessage.h>
+#include <vrep_common/simRosAddStatusbarMessage.h>
 #include <vrep_common/simRosSynchronous.h>
 #include <vrep_common/simRosSynchronousTrigger.h>
+#include <vrep_common/simRosSetBooleanParameter.h>
 #include <vrep_common/VrepInfo.h>
+#include "v_repConst.h"
 
 #include <signal.h>
 
@@ -122,6 +125,18 @@ namespace car {
         ROS_INFO_STREAM("Simulation started");
       }
 
+      void enableThreadedRendering() {
+        simRosSetBooleanParameter arg;
+        arg.request.parameter = sim_boolparam_threaded_rendering_enabled;
+        arg.request.parameterValue = true;
+        ros::ServiceClient srv = ros::NodeHandle().serviceClient< decltype(arg) >( "/vrep/simRosSetBooleanParameter");
+        srv.waitForExistence();
+        if (!srv.call(arg) || arg.response.result == -1)
+          ROS_ERROR_STREAM("Cannot enable Threaded Rendering");
+        else
+          ROS_INFO_STREAM("Threaded Rendering enabled");
+      }
+
       void stop() {
         ROS_INFO_STREAM("Simulation ends");
         simRosStopSimulation arg;
@@ -163,6 +178,7 @@ namespace car {
       {
         sync();
         start();
+        enableThreadedRendering();
       }
 
       virtual ~Simulation() {
