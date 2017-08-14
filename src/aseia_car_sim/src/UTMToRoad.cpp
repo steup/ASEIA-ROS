@@ -36,16 +36,18 @@ static const char* transName = "utm_to_road";
         posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
         size_t minI=0;
-        posIn=MetaFactory::instance().convert((ValueType)mSamples[0], posIn);
+        MetaValue ref = MetaFactory::instance().convert((ValueType)mSamples[0], posIn);
+        MetaValue roadPosError;
         for(size_t i=0; i<mSamples.size(); i++) {
-          MetaValue temp=(posIn-mSamples[i]).block(0,0,2,1);
+          MetaValue temp=ref-mSamples[i];
           if(temp.norm()<min) {
             minI=i;
             min = temp.norm();
+            roadPosError = temp.zeroValue().norm();
           }
         }
         error *=MetaValue({{{0.9999f}}}, posIn.typeId());
-        error +=MetaValue({{{0.0001f}}}, posIn.typeId())*(posIn-mSamples[minI]);
+        error +=MetaValue({{{0.0001f}}}, posIn.typeId())*(ref-mSamples[minI]);
         ROS_DEBUG_STREAM_NAMED(transName, "Current error: " << error);
         ROS_DEBUG_STREAM_NAMED(transName, "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
         size_t pre  = minI?minI-1:mSamples.size()-1;
@@ -64,17 +66,20 @@ static const char* transName = "utm_to_road";
         }
         MetaValue I = n*d.dot(n)/n.dot(n)+B;
         MetaValue offset = (I-B).norm();
-        offset+=offsetFactor;
+        offset+=MetaValue({{{offsetFactor}}}, offset.typeId());
         MetaValue laneOffset = (I-posIn).norm();
         laneOffset += MetaValue({{{0, offset.get(0,0)}}}, laneOffset.typeId());
         MetaValue roadPos({{{1.0f, 1.0f/mSamples.size()}}}, posIn.typeId());
         roadPos*=mRoadLength(minI, 0);
         roadPos+=offset;
-        posIn = posIn.zero();
-        posIn.set(1,0, laneOffset.get(0,0));
-        posIn.set(2,0, roadPos.get(0,0));
-        ROS_DEBUG_STREAM_NAMED(transName, "road Pose: " << posIn);
-        //MetaValue({{{0, 0}}, {{0, 0}}, {{((float)minI+t.value()(0,0).value())/mSamples.size(), 1.0/mSamples.size()}}}, posIn.typeId())*mRoadLength;
+        posIn.set(0,0,0);
+        posIn.block(1,0, move(laneOffset));
+        posIn.block(2,0, move(roadPos));
+        ROS_DEBUG_STREAM_NAMED(transName, "road offset: " << roadPos << " road offset error: " << roadPosError);
+        ROS_DEBUG_STREAM_NAMED(transName, "road Pose: " << posIn << " forwarded error: " << roadPosError);
+        ROS_DEBUG_STREAM_NAMED(transName, "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos);
+        posIn+=posIn.ones()*roadPosError;
+
       }
 
 
