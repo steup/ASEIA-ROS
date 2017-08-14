@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aseia_car_sim)
 
-add_definitions(-std=c++11 -Wall -g)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -14,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   vrep_plugin
   vrep_common
 )
+
+add_definitions(-std=c++11 -Wall -g ${aseiaBase_DEFINITIONS})
+set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -flto=4 -fuse-linker-plugins)
 
 add_message_files(
   FILES

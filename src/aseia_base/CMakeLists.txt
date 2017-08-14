@@ -16,7 +16,9 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(aseiaIO REQUIRED)
 find_package(aseia REQUIRED)
 
-add_definitions(-std=c++11 -Wall -g) #-Wextra)
+add_definitions(-std=c++11 -Wall -g ${aseiaIO_DEFINITIONS}) #-Wextra)
+set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -flto=4 -fuse-linker-plugins)
+
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
