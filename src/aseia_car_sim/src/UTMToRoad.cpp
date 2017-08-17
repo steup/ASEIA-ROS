@@ -32,6 +32,7 @@ static const char* transName = "utm_to_road";
       static size_t mSampleSize;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
+        ostringstream os;
         static MetaValue error((ValueType)posIn);
         posIn -= mNurbPos;
         MetaValue min=MetaValue(1000, id::type::Float::value());
@@ -43,13 +44,13 @@ static const char* transName = "utm_to_road";
           if(temp.norm()<min) {
             minI=i;
             min = temp.norm();
-            roadPosError = temp.zeroValue().norm();
+            roadPosError = temp.zeroValue().block(0,0,2,0).norm();
           }
         }
         error *=MetaValue({{{0.9999f}}}, posIn.typeId());
         error +=MetaValue({{{0.0001f}}}, posIn.typeId())*(ref-mSamples[minI]);
-        ROS_DEBUG_STREAM_NAMED(transName, "Current error: " << error);
-        ROS_DEBUG_STREAM_NAMED(transName, "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")");
+        os << "Current error: " << error <<  endl;
+        os << "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")" << endl;
         size_t pre  = minI?minI-1:mSamples.size()-1;
         size_t post = (minI+1)%mSamples.size();
         const MetaValue& A=mSamples[pre], B=mSamples[minI], C=mSamples[post];
@@ -65,8 +66,13 @@ static const char* transName = "utm_to_road";
           offsetFactor = 1;
         }
         MetaValue I = n*d.dot(n)/n.dot(n)+B;
+        os << "n: " << n << endl;
+        os << "A: " << A << endl;
+        os << "B: " << B << endl;
+        os << "C: " << C << endl;
+        os << "I: " << I << endl;
         MetaValue offset = (I-B).norm();
-        offset+=MetaValue({{{offsetFactor}}}, offset.typeId());
+        offset*=MetaValue({{{offsetFactor}}}, offset.typeId());
         MetaValue laneOffset = (I-posIn).norm();
         laneOffset += MetaValue({{{0, offset.get(0,0)}}}, laneOffset.typeId());
         MetaValue roadPos({{{1.0f, 1.0f/mSamples.size()}}}, posIn.typeId());
@@ -75,9 +81,10 @@ static const char* transName = "utm_to_road";
         posIn.set(0,0,0);
         posIn.block(1,0, move(laneOffset));
         posIn.block(2,0, move(roadPos));
-        ROS_DEBUG_STREAM_NAMED(transName, "road offset: " << roadPos << " road offset error: " << roadPosError);
-        ROS_DEBUG_STREAM_NAMED(transName, "road Pose: " << posIn << " forwarded error: " << roadPosError);
-        ROS_DEBUG_STREAM_NAMED(transName, "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos);
+        os << "road offset: " << roadPos << " road offset error: " << roadPosError << endl;
+        os << "road Pose: " << posIn << " forwarded error: " << roadPosError << endl;
+        os << "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos << endl;
+        ROS_DEBUG_STREAM_NAMED(transName, os.str());
         posIn+=posIn.ones()*roadPosError;
 
       }
