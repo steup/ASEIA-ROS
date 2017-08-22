@@ -204,13 +204,13 @@ static const char* transName = "utm_to_road";
         mDynReConfServer.setCallback(f);
       }
 
-      virtual EventIDs in(EventID goal) const {
+      virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
         EventID ref({Position::value(), Time::value(), Orientation::value(), Reference::value(), Nurbs::value()});
         ROS_INFO_STREAM("Querying UTMToRoadTransformation for appropriate Input EventIDs: [" << goal << ", " << ref << "]");
         return EventIDs({goal, ref});
       };
 
-      virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
+      virtual vector<EventType> in(const EventType& goal, const EventType& provided, const MetaFilter& = MetaFilter())  const {
         if(provided==EventType())
           return {};
         const AttributeType* goalTimeAT = goal.attribute(Time::value());
@@ -236,7 +236,7 @@ static const char* transName = "utm_to_road";
         return input;
       }
 
-      virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy) const {
+      virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& = MetaFilter()) const {
         return TransPtr(new UTMToRoadTransformer(out, in));
       }
 

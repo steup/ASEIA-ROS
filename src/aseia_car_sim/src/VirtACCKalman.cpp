@@ -38,14 +38,14 @@ class VirtACCKalman : public Transformation {
 
     }
 
-    virtual EventIDs in(EventID goal) const {
+    virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
       if(goal == sDistID)
         return {sDistID, sSpeedID};
       else
         return {};
     }
 
-    virtual EventTypes in(const EventType& goal, const EventType& provided) const {
+    virtual EventTypes in(const EventType& goal, const EventType& provided, const MetaFilter& = MetaFilter()) const {
       if(EventID(goal) == sDistID) {
         //todo define speed to use type of dist and position
         return {goal};
@@ -53,7 +53,7 @@ class VirtACCKalman : public Transformation {
         return {};
     }
 
-    virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy) const {
+    virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& = MetaFilter()) const {
       return TransPtr(new VirtACCKalmanTransformer(goal, in));
     }
 

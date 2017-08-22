@@ -68,14 +68,14 @@ class VirtSpeed : public Transformation {
 
     }
 
-    virtual EventIDs in(EventID goal) const {
+    virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
       if(goal == sSpeedID)
         return {sSpeedID/Speed(), sSpeedID/Speed()};
       else
         return {};
     }
 
-    virtual EventTypes in(const EventType& goal, const EventType& provided) const {
+    virtual EventTypes in(const EventType& goal, const EventType& provided, const MetaFilter& = MetaFilter()) const {
       if(EventID(goal) == sSpeedID) {
         EventType temp = goal;
         temp.remove(Speed());
@@ -84,7 +84,7 @@ class VirtSpeed : public Transformation {
         return {};
     }
 
-    virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy) const {
+    virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& = MetaFilter()) const {
       return TransPtr(new VirtSpeedTransformer(goal, in));
     }
 

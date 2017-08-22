@@ -72,7 +72,7 @@ namespace aseia_car_sim {
         ROS_DEBUG_STREAM_NAMED(transName, "VirtACC Transformation with goal id: " << mGoal);
       }
 
-      virtual EventIDs in(EventID goal) const {
+      virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
         ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
         if(goal == mGoal) {
           ROS_INFO_STREAM("VirtACC fits");
@@ -81,7 +81,7 @@ namespace aseia_car_sim {
           return {};
       };
 
-      virtual vector<EventType> in(const EventType& goal, const EventType& provided)  const {
+      virtual vector<EventType> in(const EventType& goal, const EventType& provided, const MetaFilter& = MetaFilter())  const {
         ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
         if(EventID(goal) != mGoal)
           return {};
@@ -93,7 +93,7 @@ namespace aseia_car_sim {
         return {in, in};
       }
 
-      virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy) const {
+      virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& = MetaFilter()) const {
         return TransPtr(new VirtACCTransformer(out, in));
       }
 
