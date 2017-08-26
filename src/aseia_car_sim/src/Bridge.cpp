@@ -78,8 +78,40 @@ static ostream& operator<<(ostream& o, const geometry_msgs::Point& p) {
   return o << "(" << p.x << " " << p.y << " " << p.z << ")" << endl;
 }
 
-template<typename InEvent, typename OutEvent>
+struct NoFilter{};
+
+template<typename InEvent, typename OutEvent, typename Filter>
 class Receiver {
+  protected:
+    const string mBaseTopic;
+    SensorEventSubscriber<InEvent, Filter> mSub;
+    map<string, Publisher> mPubs;
+  public:
+    virtual bool handleEvent(const InEvent& e, OutEvent& msg) = 0;
+    void helper(const InEvent& e) {
+      OutEvent msg;
+      if(!handleEvent(e, msg))
+        return;
+      uint32_t sec = e[Time()].value()(0,0).value()/1000UL;
+      uint32_t nsec = (e[Time()].value()(0,0).value()%1000UL)*1000000UL;
+      msg.header.stamp = ros::Time(sec, nsec);
+      uint32_t car = e[Object()].value()(0,0);
+      const string topic = "/car"+to_string(car)+"/"+mBaseTopic;
+      ROS_DEBUG_STREAM("Got " << topic << " event:\n" << e);
+      auto it = mPubs.find(topic);
+      if(it == mPubs.end()) {
+        NodeHandle nh;
+        it = mPubs.emplace(topic, Publisher(nh.advertise<OutEvent>(topic, 1))).first;
+      }
+      it->second.publish(msg);
+    }
+    Receiver(const string& topic, const Filter& filter)
+      : mBaseTopic(topic), mSub(&Receiver::helper, this, filter, 10)
+    {}
+};
+
+template<typename InEvent, typename OutEvent>
+class Receiver<InEvent, OutEvent, NoFilter> {
   protected:
     const string mBaseTopic;
     SensorEventSubscriber<InEvent> mSub;
@@ -103,16 +135,17 @@ class Receiver {
       }
       it->second.publish(msg);
     }
-    Receiver(const string& topic)
+    Receiver(const string& topic, const NoFilter& filter)
       : mBaseTopic(topic), mSub(&Receiver::helper, this, 10)
     {}
 };
 
-template<typename EventType, typename AttrID>
-class Translator : public Receiver<EventType, EventData> {
+
+template<typename EventType, typename AttrID, typename Filter = NoFilter>
+class Translator : public Receiver<EventType, EventData, Filter> {
   public:
-    Translator(const string& topic)
-      : Receiver<EventType, EventData>(topic)
+    Translator(const string& topic, const Filter& filter = Filter())
+      : Receiver<EventType, EventData, Filter>(topic, filter)
     {}
   virtual bool handleEvent(const EventType& e, EventData& msg) {
     const auto& v = e[AttrID()].value();
@@ -130,9 +163,9 @@ class Translator : public Receiver<EventType, EventData> {
 };
 
 template<typename EventType>
-class Odom : public Receiver<EventType, nav_msgs::Odometry> {
+class Odom : public Receiver<EventType, nav_msgs::Odometry, NoFilter> {
   public:
-    Odom() : Receiver<EventType, nav_msgs::Odometry>("odom") {}
+    Odom() : Receiver<EventType, nav_msgs::Odometry, NoFilter>("odom", NoFilter()) {}
 
     virtual bool handleEvent(const EventType& e, nav_msgs::Odometry& msg) {
       msg.pose.pose.position.x = e[Position()].value()(0,0).value();
@@ -148,16 +181,10 @@ class Odom : public Receiver<EventType, nav_msgs::Odometry> {
     }
 };
 
-using ::filter::norm;
-using ::filter::uncertainty;
-using ::filter::e0;
-using RoadPosUComp = decltype(RoadEvent::findAttribute<Position>::type().uncertainty().norm());
-static const RoadPosUComp c = {5};
-static const auto roadEventFilter = norm(uncertainty(e0[Position()])) < c;
 
 class RoadMarker {
   private:
-    SensorEventSubscriber<RoadEvent, decltype(roadEventFilter)> mRoadSub;
+    SensorEventSubscriber<RoadEvent> mRoadSub;
     Publisher mRoadPub;
     vector<NURBCurve::Point> mNurbPoints;
     float mNurbLength;
@@ -220,7 +247,7 @@ class RoadMarker {
     }
 
     RoadMarker()
-      : mRoadSub(&RoadMarker::handleRoad, this, roadEventFilter),
+      : mRoadSub(&RoadMarker::handleRoad, this),
         mRoadPub(ros::NodeHandle().advertise<visualization_msgs::Marker>("road", 1, true))
     {}
 };
@@ -228,9 +255,12 @@ class RoadMarker {
 }
 int main(int argc, char** argv) {
   ros::init(argc, argv, "aseia_bridge");
+  using RoadACCUComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
+  RoadACCUComp c = {5};
+  auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c;
   aseia_car_sim::Translator<aseia_car_sim::RoadPoseEvent , id::attribute::Position> roadPoseSub ("roadPose");
   aseia_car_sim::Translator<aseia_car_sim::RoadSpeedEvent, id::attribute::Speed   > roadSpeedSub("roadSpeed");
-  aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance> roadACCSub  ("roadACC");
+  aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance, decltype(roadACCFilter)> roadACCSub  ("roadACC", roadACCFilter);
   aseia_car_sim::Translator<aseia_car_sim::UTMPoseEvent  , id::attribute::Position> utmPoseSub  ("utmPose");
   aseia_car_sim::Translator<aseia_car_sim::UTMSpeedEvent , id::attribute::Speed   > utmSpeedSub ("utmSpeed");
   aseia_car_sim::Translator<aseia_car_sim::UTMACCEvent   , id::attribute::Distance> utmACCSub   ("utmACC");
