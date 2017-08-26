@@ -148,9 +148,16 @@ class Odom : public Receiver<EventType, nav_msgs::Odometry> {
     }
 };
 
+using ::filter::norm;
+using ::filter::uncertainty;
+using ::filter::e0;
+using RoadPosUComp = decltype(RoadEvent::findAttribute<Position>::type().uncertainty().norm());
+static const RoadPosUComp c = {5};
+static const auto roadEventFilter = norm(uncertainty(e0[Position()])) < c;
+
 class RoadMarker {
   private:
-    SensorEventSubscriber<RoadEvent> mRoadSub;
+    SensorEventSubscriber<RoadEvent, decltype(roadEventFilter)> mRoadSub;
     Publisher mRoadPub;
     vector<NURBCurve::Point> mNurbPoints;
     float mNurbLength;
@@ -213,7 +220,7 @@ class RoadMarker {
     }
 
     RoadMarker()
-      : mRoadSub(&RoadMarker::handleRoad, this),
+      : mRoadSub(&RoadMarker::handleRoad, this, roadEventFilter),
         mRoadPub(ros::NodeHandle().advertise<visualization_msgs::Marker>("road", 1, true))
     {}
 };
