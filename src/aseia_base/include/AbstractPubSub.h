@@ -78,8 +78,6 @@ class AbstractPubSub {
 
       ROS_INFO_STREAM("Created " << (t==Type::publisher?"Publisher":"Subscriber") <<
                       " with EventType " << eType << " on Topic : " << topic());
-      ros::TimerEvent time;
-      publishType(time);
     }
 
   public:

@@ -18,6 +18,8 @@ class SensorEventPublisher : public AbstractPubSub<SensorEvent>{
     SensorEventPublisher(size_t size=1, bool latch=false)
       : Base(Base::Type::publisher) {
         mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(this->topic(), size, latch);
+        ros::TimerEvent time;
+        this->publishType(time);
     }
 
     void publish(SensorEvent& e) {
