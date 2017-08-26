@@ -130,6 +130,13 @@ class ChannelManager {
       EventType eT;
       DeSerializer<decltype(eTPtr->data.begin())> d(eTPtr->data.begin(), eTPtr->data.end());
       d >> eT;
+      MetaFilter filter({&eT});
+      if(eTPtr->filter.empty())
+        filter = MetaFilter();
+      else {
+        DeSerializer<decltype(eTPtr->filter.begin())> d(eTPtr->filter.begin(), eTPtr->filter.end());
+        d >> filter;
+      }
 
 
       if(eTPtr->type == aseia_base::EventType::PUBLISHER) {
@@ -139,7 +146,7 @@ class ChannelManager {
       } else {
         ROS_DEBUG_STREAM("Subscriber: " << eT);
         ROS_DEBUG_STREAM("Searching for Transforms");
-        for(const CompositeTransformation& cT : KnowledgeBase::findTransforms(eT)) {
+        for(const CompositeTransformation& cT : KnowledgeBase::findTransforms(eT, filter)) {
 
           ROS_DEBUG_STREAM("Potential Transform: " << cT);
 
