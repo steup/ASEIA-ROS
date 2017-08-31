@@ -131,7 +131,7 @@ namespace car {
         PosAttr&  posAttr  = mEvent.attribute(id::attribute::Position());
         OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
         timeAttr.value()(0,0) = { getTime(), 0 };
-        posAttr.value() = {{{pos[0], 0}}, {{pos[1], 0}}, {{ pos[2], 0 }}};
+        posAttr.value() = {{{pos[0], 0.1}}, {{pos[1], 0.1}}, {{ pos[2], 0.5 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
         timeAttr += timeError();
         posAttr  += posError();
@@ -148,6 +148,17 @@ namespace car {
 
   class VisionDistanceSensor: public Float {
     private:
+      using DistBaseConfig = EventConfig;
+      using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
+      using Distance = Attribute<id::attribute::Distance, Value<float, 1, 1, true>, Meter>;
+      using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type;
+      DistEvent mEvent;
+      SensorEventPublisher<DistEvent> mPub;
+      using DistAttr  = DistEvent::findAttribute<::id::attribute::Distance>::type;
+      using PosAttr   = DistEvent::findAttribute<::id::attribute::Position>::type;
+      using TimeAttr  = DistEvent::findAttribute<::id::attribute::Time>::type;
+      NormalError<TimeAttr> timeError;
+      NormalError<DistAttr> distError;
       VisionDepthSensor mSensor;
       const float mMaxDist;
     public:
@@ -157,9 +168,15 @@ namespace car {
           mMaxDist(getFloatParam(path+"/farClip")-getFloatParam(path+"/nearClip"))
       {
           ROS_INFO_STREAM("Add vision depth sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
+          mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
+          mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();
           update();
       }
         virtual bool update() {
+          TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
+          DistAttr& distAttr = mEvent.attribute(id::attribute::Distance());
+          timeAttr.value()(0,0) = { getTime(), 0 };
+          timeAttr += timeError();
           VisionDepthSensor::Distances scan = mSensor.distances();
           value = numeric_limits<float>::infinity();
           for(ssize_t i = 0; i< mSensor.resolution[0]; i++)
@@ -167,7 +184,13 @@ namespace car {
               if(scan(i,j) < value)
                 value = scan(i, j);
           value *= mMaxDist;
+          if(value > mMaxDist*0.9)
+            distAttr.value()(0,0) = { mMaxDist/2, mMaxDist/2};
+          else
+            distAttr.value()(0,0) = { value, 0};
+          distAttr += distError();
           ROS_DEBUG_STREAM(*this);
+          mPub.publish(mEvent);
           return value != numeric_limits<float>::infinity();
         }
 
