@@ -26,41 +26,56 @@ class VirtACCKalmanTransformer : public Transformer {
     const type::ID type;
     MetaValue x, P;
     MetaValue time;
-    MetaValue speed0, speed1;
-    const MetaValue object, object2;
-    const MetaValue F1, B1, H1, Q, R;
+    //MetaValue speed;
+    const MetaValue object;//, object2;
+    const MetaValue Q, z_alpha;
     VirtACCKalmanTransformer(const EventType& goal, const EventTypes& in, const MetaFilter& filter)
       : Transformer(goal, in), type(goal[Distance()].value().typeId()),
-      object(extractValueFromFilter(Object(), filter)), object2(extractValueFromFilter(Object2(), filter)),
-      F1({{{0}}}, type), B1({{{0}}}, type),
-      H1({{{0}}}, type),
-      Q({{{0}}}, type), R({{{0}}}, type) {
-    }
+      object(extractValueFromFilter(Object(), filter)),// object2(extractValueFromFilter(Object2(), filter)),
+      Q({{{1}}}, type), z_alpha({{{2.575829303549}}}, type) {
+        x=MetaValue({{{0}}}, type); // distance
+        P=MetaValue({{{1}}}, type); // sigma distance
+        time=MetaValue({{{0}}}, goal[Time()].value().typeId());
+      }
 
     virtual bool check(const MetaEvent& e) const {
       // todo check for compatibility of speed to state or of future of sensing to state
-      return ( e.attribute(Distance()) && e[Object()].value() == object && e[Object2()].value() == object2 ) ||
-             ( e.attribute(Speed()) && ( e[Object()].value() == object || e[Object()].value() == object2 ) );
+      return ( e.attribute(Distance()) && e[Object()].value() == object );// ||
+//             ( e.attribute(Speed()) && e[Object()].value() == object);
     }
 
     virtual Events operator()(const MetaEvent& e) {
-      MetaValue z(type, 3, 1, true);
-      z = z.zero();
-      if(e.attribute(Distance())) {
-        z.block(0,0, e[Distance()].value());
-      }
-      if(e.attribute(Speed())) {
-        if(e[Object()].value()==object)
-          z.block(1,0, e[Speed()].value());
-        else
-          z.block(2,0, e[Speed()].value());
-      }
-      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "z: " << z);
-      //todo handle speed event or dist event / speed -> control, dist -> sensing
-      if(e.attribute(Distance()))
-        return {e};
-      else
+      /*if(e.attribute(Speed())) {
+        speed = (e[Speed()]/e[Speed()].scale()).value(); // set speed
         return {};
+      }
+      if(speed.rows()==1) return {};*/
+      MetaValue current = (e[Time()]/e[Time()].scale()).value();
+      MetaValue dist = (e[Distance()]/e[Distance()].scale()).value();
+      //MetaValue current = (e[Time()]/e[Time()].scale()).value(); // set new time
+      MetaValue z = dist.value(); // sensor input (distance local or distance remote)
+      MetaValue R = (dist.uncertainty()/z_alpha); // sensor input sigma
+      R*=R; //sensor input covariance
+      MetaValue Q_time = (current-time).value()*Q;
+
+      MetaValue P_pre = P+Q_time; // prediction covariance
+      MetaValue K = P_pre*(P_pre+R).inverse(); // kalman gain
+      MetaValue x_temp = x + K*(z-x); // corrected state
+      MetaValue P_temp = P_pre - K*P_pre; // corrected covariance
+      //if time < current
+      MetaEvent out=e;
+      // convert covariance to uncertainty
+      MetaValue result = P_temp.toUncertainty().sqrt()*z_alpha;
+      result+=x;
+      out[Distance()].value() = result; //set new output
+      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "Result: " << result << endl << "x: " << x_temp << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out);
+      if(x_temp.valid() && P_temp.valid()) {
+        time == move(current);
+        x = move(x_temp);
+        P = move(P_temp);
+      }
+
+      return {out};
 
     }
 
@@ -88,7 +103,7 @@ class VirtACCKalman : public Transformation {
     virtual EventIDs in(EventID goal, const MetaFilter& filter = MetaFilter()) const {
       if(!containsUncertaintyTest(filter)) return {};
       ROS_DEBUG_STREAM_NAMED("virt_kalman", "Kalman Input IDs for id " << goal);
-      return {sDistID, sSpeedID};
+      return {sDistID};
     }
 
     virtual EventTypes in(const EventType& goal, const EventType& provided, const MetaFilter& filter = MetaFilter()) const {
@@ -101,7 +116,7 @@ class VirtACCKalman : public Transformation {
       EventType speed = position;
       AttributeType speedAttr(Speed(), distAttr.value(), MetaScale(distAttr.scale())/timeAttr.scale(), MetaUnit(distAttr.unit())/timeAttr.unit());
       speed.add(speedAttr);
-      return {speed, goal};
+      return {goal};
     }
 
     virtual TransPtr create(const EventType& goal, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& filter= MetaFilter()) const {
