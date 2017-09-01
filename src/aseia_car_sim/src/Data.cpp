@@ -1,7 +1,9 @@
 #include <SensorEventPublisher.h>
+#include <SensorEventSubscriber.h>
 #include <BaseEvent.h>
 #include <ID.h>
 #include <Attribute.h>
+#include <Filter.h>
 
 #include "Data.h"
 #include "Car.h"
@@ -131,7 +133,7 @@ namespace car {
         PosAttr&  posAttr  = mEvent.attribute(id::attribute::Position());
         OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
         timeAttr.value()(0,0) = { getTime(), 0 };
-        posAttr.value() = {{{pos[0], 0.1}}, {{pos[1], 0.1}}, {{ pos[2], 0.5 }}};
+        posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
         timeAttr += timeError();
         posAttr  += posError();
@@ -157,15 +159,30 @@ namespace car {
       using DistAttr  = DistEvent::findAttribute<::id::attribute::Distance>::type;
       using PosAttr   = DistEvent::findAttribute<::id::attribute::Position>::type;
       using TimeAttr  = DistEvent::findAttribute<::id::attribute::Time>::type;
+      using ObjectComp = decltype(DistEvent::findAttribute<::id::attribute::Object>::type());
+      using UTMACCUComp = decltype(DistEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
       NormalError<TimeAttr> timeError;
       NormalError<DistAttr> distError;
       VisionDepthSensor mSensor;
       const float mMaxDist;
+      UTMACCUComp c = {0.5};
+      ObjectComp  o;
+      using FilterExpr = decltype(filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o);
+      SensorEventSubscriber<DistEvent, FilterExpr> mSub;
+      float recvDist;
+      size_t recvTimeout=0;
     public:
+      void handleEvent(const DistEvent& e) {
+        recvDist = e[id::attribute::Distance()].value()(0,0).value();
+        recvTimeout = 10;
+      }
       VisionDistanceSensor(const std::string& path, const Car& car)
         : Float(path, car, true),
           mSensor(getName(path+"/handle"), car.index()),
-          mMaxDist(getFloatParam(path+"/farClip")-getFloatParam(path+"/nearClip"))
+          mMaxDist(getFloatParam(path+"/farClip")-getFloatParam(path+"/nearClip")),
+          o(car.index()),
+          mSub(&VisionDistanceSensor::handleEvent, this,
+                     filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o)
       {
           ROS_INFO_STREAM("Add vision depth sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
           mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
@@ -187,10 +204,14 @@ namespace car {
           if(value > mMaxDist*0.9)
             distAttr.value()(0,0) = { mMaxDist/2, mMaxDist/2};
           else
-            distAttr.value()(0,0) = { value, 0};
+            distAttr.value()(0,0) = { value, 1};
           distAttr += distError();
           ROS_DEBUG_STREAM(*this);
           mPub.publish(mEvent);
+          if(recvTimeout>0) {
+            value=recvDist;
+            recvTimeout--;
+          }
           return value != numeric_limits<float>::infinity();
         }
 

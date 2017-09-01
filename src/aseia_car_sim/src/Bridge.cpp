@@ -256,11 +256,13 @@ class RoadMarker {
 int main(int argc, char** argv) {
   ros::init(argc, argv, "aseia_bridge");
   using RoadACCUComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
+  using ObjectComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Object>::type());
   using UTMACCUComp = decltype(aseia_car_sim::UTMACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
-  RoadACCUComp c = {5};
-  UTMACCUComp c2 = {5};
-  auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c;
-  auto utmACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c2;
+  RoadACCUComp c = {0.5};
+  UTMACCUComp c2 = {0.5};
+  ObjectComp o = {0};
+  auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o;
+  auto utmACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c2 && filter::e0[id::attribute::Object()] == o;
   /*aseia_car_sim::Translator<aseia_car_sim::RoadPoseEvent , id::attribute::Position> roadPoseSub ("roadPose");
   aseia_car_sim::Translator<aseia_car_sim::RoadSpeedEvent, id::attribute::Speed   > roadSpeedSub("roadSpeed");
   aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance, decltype(roadACCFilter)> roadACCSub  ("roadACC", roadACCFilter);*/
