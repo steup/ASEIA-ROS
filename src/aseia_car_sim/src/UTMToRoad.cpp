@@ -27,43 +27,34 @@ static const char* transName = "utm_to_road";
       MetaValue mNurbPos;
       MetaValue mNurbOri;
       MetaEvent mNurbEvent;
-      std::vector<MetaNURBCurve::Point> mSamples;
+      MetaValue mSamples;
       bool mCurveReady=false;
       static size_t mSampleSize;
+      ::id::type::ID mPosType, mSampleType;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
         ostringstream os;
-        static MetaValue error((ValueType)posIn);
         posIn -= mNurbPos;
-        MetaValue min=MetaValue(1000, id::type::Float::value());
-        size_t minI=0;
-        MetaValue ref = MetaFactory::instance().convert((ValueType)mSamples[0], posIn);
-        MetaValue roadPosError;
-        for(size_t i=0; i<mSamples.size(); i++) {
-          MetaValue temp=ref-mSamples[i];
-          if(temp.norm()<min) {
-            minI=i;
-            min = temp.norm();
-            roadPosError = temp.zeroValue().block(0,0,2,0).norm();
-          }
-        }
-        error *=MetaValue({{{0.9999f}}}, posIn.typeId());
-        error +=MetaValue({{{0.0001f}}}, posIn.typeId())*(ref-mSamples[minI]);
-        os << "Current error: " << error <<  endl;
-        os << "Fitting Road sample (" << minI << "): " << mSamples[minI] << " difference is " << min << ")" << endl;
-        size_t pre  = minI?minI-1:mSamples.size()-1;
-        size_t post = (minI+1)%mSamples.size();
-        const MetaValue& A=mSamples[pre], B=mSamples[minI], C=mSamples[post];
-        int offsetFactor;
+        ValueType helperType = (ValueType)mSamples;
+        helperType.rows(1);
+        MetaValue diff = (posIn.cast(mSampleType)*MetaValue(helperType).ones()-mSamples);
+        diff=diff.cwiseDot(diff);
+        int minI=(size_t)diff.transpose().argmin().get(0,0).value();
+        MetaValue roadPosError = diff.block(0, minI, 1, 1).zeroValue();
+        os << "Fitting Road sample (" << minI << "): " << mSamples.block(0, minI, 3, 1) << " difference is " << diff(0, minI) << ")" << endl;
+        int pre  = minI?minI-1:mSamples.cols()-1;
+        int post = (minI+1)%mSamples.cols();
+        MetaValue A=mSamples.block(0, pre, 3, 1), B=mSamples.block(0, minI, 3, 1), C=mSamples.block(0, post, 3, 1);
+        MetaValue offsetFactor(mSampleType, 1, 1, false);
         MetaValue n,d;
         if((B-A).norm() < (B-C).norm()) {
           d = posIn-A;
           n = B-A;
-          offsetFactor = -1;
+          offsetFactor = -offsetFactor.ones();
         } else {
           d = posIn-B;
           n = C-B;
-          offsetFactor = 1;
+          offsetFactor = offsetFactor.ones();
         }
         MetaValue I = n*d.dot(n)/n.dot(n)+B;
         os << "n: " << n << endl;
@@ -71,12 +62,11 @@ static const char* transName = "utm_to_road";
         os << "B: " << B << endl;
         os << "C: " << C << endl;
         os << "I: " << I << endl;
-        MetaValue offset = (I-B).block(0,0,2,0).norm();
-        offset*=MetaValue({{{offsetFactor}}}, offset.typeId());
+        MetaValue offset = (I-B).block(0,0,2,0).norm()*offsetFactor;
         MetaValue laneOffset = (I-posIn).norm();
         laneOffset += MetaValue({{{0, offset.get(0,0)}}}, laneOffset.typeId());
-        MetaValue roadPos({{{1.0f, 1.0f/(mSamples.size())}}}, posIn.typeId());
-        roadPos*=mRoadLength(minI, 0);
+        MetaValue roadPos({{{1.0f, 1.0f/(mSamples.cols())}}}, posIn.typeId());
+        roadPos*=mRoadLength(0, minI);
         roadPos+=offset;
         posIn.set(0,0,0);
         posIn.block(1,0, move(laneOffset));
@@ -123,31 +113,27 @@ static const char* transName = "utm_to_road";
           const size_t dim = (size_t)nurbData.get(0,0);
           const size_t pSize = (size_t)nurbData.get(0,1);
           const size_t lSize = (size_t)nurbData.get(0,2);
-          ROS_DEBUG_STREAM_NAMED(transName, "Got Road description with: " << endl << "\tDimension: " << dim << endl <<"\t#Points: " << pSize << "\t#Knots: " << lSize);
+          ROS_INFO_STREAM_NAMED(transName, "Got Road description with: " << endl << "\tDimension: " << dim << endl <<"\t#Points: " << pSize << "\t#Knots: " << lSize);
           MetaNURBCurve c(dim, move(nurbData.block(1, 3, lSize+1, 1)), move(nurbData.block(1, 0, pSize+1, 3)));
-          ostringstream os;
+          ostringstream os, debug;
           os << "UTMToRoad: got road nurb description:" << endl;
-          mSamples.clear();
-          for(size_t i=dim*mSampleSize/lSize;i<mSampleSize-dim*mSampleSize/lSize;i++) {
-            mSamples.emplace_back(c.sample(MetaValue((float)i/mSampleSize, id::type::Float::value())).transpose());
-            os << mSamples.back() << endl;
-          }
-          ::id::type::ID dataType = nurbData.typeId();
-          MetaValue length(dataType, 1);
-          mRoadLength = MetaValue(dataType, mSamples.size());
-          bool first = true;
-          MetaValue oldSample;
-          size_t i=0;
-          for(const auto& p : mSamples) {
-            if(!first)
-              length += (p-oldSample).norm();
-            mRoadLength.set(i++, 0, length.get(0,0));
-            oldSample = p;
-            first=false;
-          }
-          os << "\tLenght: " << length << "\tSegments: " << mRoadLength;
-          ROS_DEBUG_STREAM_NAMED(transName, os.str());
-          mCurveReady = true;
+          mSamples=MetaValue(mSampleType, dim, mSampleSize-2*dim*mSampleSize/lSize, false);
+          debug << "mSampleType: " << mSampleType << endl << "mSamples: " << mSamples << endl;
+          for(size_t i=0;i<mSampleSize-2*dim*mSampleSize/lSize;i++)
+            mSamples.block(0,i,c.sample(MetaValue((float)(i+dim*mSampleSize/lSize)/mSampleSize, mSampleType)).transpose());
+          debug << "mSamples: " << mSamples << endl;
+          MetaValue shifted = mSamples.block(0, 1, 3, mSamples.cols()-2);
+          debug << "shifted: " << shifted << endl;
+          mRoadLength = shifted-mSamples.block(0, 0, 3, mSamples.cols()-2);
+          debug << "mRoadLenght: " << mRoadLength << endl;
+          mRoadLength=mRoadLength.cwiseDot(mRoadLength).sqrt();
+          for(size_t i=1;i<mRoadLength.cols();i++)
+            mRoadLength.block(0, i, mRoadLength(0, i)+=mRoadLength(0, i-1));
+          os << "\tLenght: " << mRoadLength(0, mRoadLength.cols()-1) << "\tSegments: " << mRoadLength;
+          ROS_INFO_STREAM_NAMED(transName, os.str());
+          ROS_INFO_STREAM_NAMED(transName, debug.str());
+          if(mSamples.cols() && mRoadLength.cols())
+            mCurveReady = true;
           return {};
         }
         if(attr->scale().reference() == mInRef && mCurveReady) {
@@ -173,10 +159,13 @@ static const char* transName = "utm_to_road";
       }
 
       UTMToRoadTransformer(const EventType& out, const EventTypes& in)
-        : Transformer(out, in) {
+        : Transformer(out, in), mPosType(out[Position()].value().typeId()) {
         mOutRef = out.attribute(Position::value())->scale().reference();
         mInRef = in[0].attribute(Position::value())->scale().reference();
         mInstances.push_back(this);
+        for(const EventType& eT: in)
+          if(eT.attribute(Nurbs())!=nullptr)
+            mSampleType = eT[Nurbs()].value().typeId();
       }
 
       virtual ~UTMToRoadTransformer() {
@@ -194,8 +183,8 @@ static const char* transName = "utm_to_road";
       size_t mSampleSize;
     public:
       void dynReConfCallback(NurbsConfig &config, uint32_t level) {
-        ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.int_param);
-        mSampleSize = config.int_param;
+        ROS_INFO_STREAM("Reconfigure UTMToRoad: \n\t sampleSize: " << config.nurbSampleSize);
+        mSampleSize = config.nurbSampleSize;
         UTMToRoadTransformer::updateSampleSize(mSampleSize);
       }
       UTMToRoad() : Transformation(Transformation::Type::attribute, 2, EventID::any) {
