@@ -1,5 +1,6 @@
 <launch>
   <arg name="debug" default="false"/>
+  <param name="/AseiaManager/nurbSampleSize" value="1000"/>
   <include file="$(find aseia_base)/launch/manager.launch">
     <arg name="transformations" value="aseia_car_sim::UTMToRoad
                                        aseia_car_sim::VirtACC
