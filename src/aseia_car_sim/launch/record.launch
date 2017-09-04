@@ -1,0 +1,12 @@
+<launch>
+  <arg name="topics" default="/sensors/4008810/1387401783
+                              /sensors/4008810/2680976803
+                              /sensors/21390/3152911410
+                              /sensors/21390/827528676
+                              /sensors/690/3601260506
+                              /sensors/7590/23945608
+                              /sensors/7590/2828564904
+                              /sensors/8970/3327424136
+                              /sensors/8970/998276099"/>
+  <node name="record" type="record" pkg="rosbag" args="$(arg topics) /rosout"/>
+</launch>
