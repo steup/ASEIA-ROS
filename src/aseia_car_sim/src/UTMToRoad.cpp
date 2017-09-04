@@ -99,6 +99,7 @@ static const char* transName = "utm_to_road";
         if(!attr)
           return {};
         if(attr->scale().reference() == mOutRef) {
+          mCurveReady = true;
           const MetaAttribute* mPosPtr = event.attribute(Reference::value());
           const MetaAttribute* mOriPtr = event.attribute(Orientation::value());
           const MetaAttribute* mNurbPtr = event.attribute(Nurbs::value());
@@ -131,7 +132,7 @@ static const char* transName = "utm_to_road";
             mRoadLength.block(0, i, mRoadLength(0, i)+=mRoadLength(0, i-1));
           os << "\tLenght: " << mRoadLength(0, mRoadLength.cols()-1) << "\tSegments: " << mRoadLength;
           ROS_INFO_STREAM_NAMED(transName, os.str());
-          ROS_INFO_STREAM_NAMED(transName, debug.str());
+          ROS_DEBUG_STREAM_NAMED(transName, debug.str());
           if(mSamples.cols() && mRoadLength.cols())
             mCurveReady = true;
           return {};
