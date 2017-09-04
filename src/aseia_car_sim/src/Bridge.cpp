@@ -66,18 +66,6 @@ using RoadEvent = BaseEvent<NurbsBaseConfig>
                         ::append<NurbData>::type
                         ::append<Ori>::type;
 
-template<typename T>
-static ostream& operator<<(ostream& o, const vector<T>& v) {
-  o << "[";
-  for(const auto& elem : v)
-    o << elem << " ";
-  return o << "]";
-}
-
-static ostream& operator<<(ostream& o, const geometry_msgs::Point& p) {
-  return o << "(" << p.x << " " << p.y << " " << p.z << ")" << endl;
-}
-
 struct NoFilter{};
 
 template<typename InEvent, typename OutEvent, typename Filter>
@@ -186,8 +174,6 @@ class RoadMarker {
   private:
     SensorEventSubscriber<RoadEvent> mRoadSub;
     Publisher mRoadPub;
-    vector<NURBCurve::Point> mNurbPoints;
-    float mNurbLength;
 
   public:
     void handleRoad(const RoadEvent& e) {
@@ -225,24 +211,14 @@ class RoadMarker {
                              "\tknots: " << endl << knots << endl <<
                              "\tpoints: " << endl << points);
       NURBCurve c(dim, NURBCurve::KnotsType(knots), NURBCurve::PointsType(points));
-      mNurbLength=0;
-      bool first=true;
-      NURBCurve::Point oldP;
-      mNurbPoints.clear();
       for(size_t i=300/lSize; i<100-300/lSize; i++) {
           NURBCurve::Point p = c.sample(i/100.0);
-          mNurbPoints.push_back(p);
           geometry_msgs::Point temp;
           temp.x=p(0,0);
           temp.y=p(0,1);
           temp.z=p(0,2);
           marker.points.emplace_back(move(temp));
-          if(!first)
-            mNurbLength += (p-oldP).norm();
-          oldP = p;
-          first=false;
       }
-      ROS_DEBUG_STREAM("NURBS: Result: " << endl << marker.points);
       mRoadPub.publish(marker);
     }
 
