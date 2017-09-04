@@ -1,9 +1,9 @@
 <launch>
-  <arg name="base_speed" default="10"/>
+  <arg name="base_speed" default="8"/>
   <group ns="car0">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="0"/>
-    <arg name="speed" value="$(eval base_speed+2)"/>
+    <arg name="speed" value="$(eval base_speed+4)"/>
   </include>
   </group>
   <group ns="car1">

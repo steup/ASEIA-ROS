@@ -263,9 +263,9 @@ int main(int argc, char** argv) {
   ObjectComp o = {0};
   auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o;
   auto utmACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c2 && filter::e0[id::attribute::Object()] == o;
-  /*aseia_car_sim::Translator<aseia_car_sim::RoadPoseEvent , id::attribute::Position> roadPoseSub ("roadPose");
+  aseia_car_sim::Translator<aseia_car_sim::RoadPoseEvent , id::attribute::Position> roadPoseSub ("roadPose");
   aseia_car_sim::Translator<aseia_car_sim::RoadSpeedEvent, id::attribute::Speed   > roadSpeedSub("roadSpeed");
-  aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance, decltype(roadACCFilter)> roadACCSub  ("roadACC", roadACCFilter);*/
+  aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance, decltype(roadACCFilter)> roadACCSub  ("roadACC", roadACCFilter);
   aseia_car_sim::Translator<aseia_car_sim::UTMPoseEvent  , id::attribute::Position> utmPoseSub  ("utmPose");
   aseia_car_sim::Translator<aseia_car_sim::UTMSpeedEvent , id::attribute::Speed   > utmSpeedSub ("utmSpeed");
   aseia_car_sim::Translator<aseia_car_sim::UTMACCEvent   , id::attribute::Distance, decltype(utmACCFilter)> utmACCSub   ("utmACC", utmACCFilter);
