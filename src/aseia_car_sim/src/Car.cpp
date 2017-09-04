@@ -143,7 +143,7 @@ namespace car {
               A2 speeds = A2::Constant(speed)*2/0.76;
               A2 angles = A2::Zero();
               if(steer > 0.0001 || steer < -0.0001) {
-                float r = mLength * tanf(M_PI_2 - steer);
+                float r = mLength * tanf(M_PI_2 - steer); // Distance between center of rear axle and centerpoint of rotation
                 float a = mWidth / ( r * r + mLength * mLength );
                 A2 s(copysign(steer, 1.0f), -copysign(steer, 1.0f));
                 speeds  *= (s * r * a + mWidth * a + 1).sqrt();
