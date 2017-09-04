@@ -4,6 +4,7 @@
 
 #include <vrep_common/simRosGetVisionSensorDepthBuffer.h>
 #include <vrep_common/simRosReadProximitySensor.h>
+#include <vrep_common/simRosGetObjectFloatParameter.h>
 #include <vrep_common/simRosGetObjectHandle.h>
 #include <vrep_common/simRosGetObjectPose.h>
 #include <vrep_common/simRosSetJointTargetPosition.h>
@@ -129,6 +130,23 @@ static Object::Position getPosition(int handle, int reference) {
   return Object::Position(x, y, z);
 }
 
+static Object::Speed getSpeed(int handle) {
+  static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectFloatParameter >( "/vrep/simRosGetObjectFloatParameter", true);
+  simRosGetObjectFloatParameter speed;
+  speed.request.handle = handle;
+  speed.request.parameterID = 11; // Abs x velocity
+  Eigen::Vector3f res;
+  for(size_t i=0;i<3;i++)
+    try {
+      speed.request.parameterID += i;
+      checkedCall(srv, speed);
+      res(i) = speed.response.parameterValue;
+    } catch(Exception& e) {
+        throw ExtendedException(e) << "Cannot get x axis speed of object " << speed.request.handle << " - " << __FILE__ << ":" << __LINE__;
+    }
+  return res.norm();
+}
+
 static Object::Orientation getOrientation(int handle, int reference) {
   static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectPose >( "/vrep/simRosGetObjectPose", true);
   simRosGetObjectPose pose;
@@ -177,6 +195,10 @@ static void getProximityDistance(simRosReadProximitySensor& buffer) {
 
   Object::Orientation Object::orientation(const Object& reference) const throw(Exception) {
     return getOrientation(handle, reference.handle);
+  }
+
+  Object::Speed Object::speed() const throw(Exception) {
+    return getSpeed(handle);
   }
 
   AngularJoint::AngularJoint(std::string name, int index) throw(Exception)

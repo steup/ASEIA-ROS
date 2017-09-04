@@ -100,15 +100,18 @@ namespace car {
       using PoseBaseConfig = EventConfig;
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using Ori  = Attribute<id::attribute::Orientation, Value<float, 4>, Radian>;
-      using PoseEvent = BaseEvent<PoseBaseConfig>::append<ObjectID>::type::append<Ori>::type;
+      using Speed    = Attribute<id::attribute::Speed , Value<float, 1, 1, true>>;
+      using PoseEvent = BaseEvent<PoseBaseConfig>::append<ObjectID>::type::append<Ori>::type::append<Speed>::type;
       PoseEvent mEvent;
       SensorEventPublisher<PoseEvent> mPub;
       Object mCarBody;
-      using PosAttr  = PoseEvent::findAttribute<::id::attribute::Position>::type;
-      using TimeAttr = PoseEvent::findAttribute<::id::attribute::Time>::type;
-      using OriAttr  = PoseEvent::findAttribute<::id::attribute::Orientation>::type;
+      using PosAttr   = PoseEvent::findAttribute<::id::attribute::Position>::type;
+      using TimeAttr  = PoseEvent::findAttribute<::id::attribute::Time>::type;
+      using OriAttr   = PoseEvent::findAttribute<::id::attribute::Orientation>::type;
+      using SpeedAttr = PoseEvent::findAttribute<::id::attribute::Speed>::type;
       NormalError<PosAttr> posError;
       NormalError<TimeAttr> timeError;
+      NormalError<SpeedAttr> speedError;
       //NormalError<OriAttr> oriError;
     public:
       PoseSensor(const std::string& path, const Car& car)
@@ -128,13 +131,17 @@ namespace car {
                                         Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitY()) *
                                         Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());
         const Object::Orientation ori = mCarBody.orientation() * mod;
+        const Object::Speed  speed = mCarBody.speed();
         ROS_DEBUG_STREAM(*this);
-        TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
-        PosAttr&  posAttr  = mEvent.attribute(id::attribute::Position());
-        OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
+        TimeAttr& timeAttr   = mEvent.attribute(id::attribute::Time());
+        PosAttr&  posAttr    = mEvent.attribute(id::attribute::Position());
+        OriAttr&  oriAttr    = mEvent.attribute(id::attribute::Orientation());
+        SpeedAttr& speedAttr = mEvent.attribute(id::attribute::Speed());
+
         timeAttr.value()(0,0) = { getTime(), 0 };
         posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
+        speedAttr.value() = {{{speed, 0}}};
         timeAttr += timeError();
         posAttr  += posError();
         //ori  += oriError;

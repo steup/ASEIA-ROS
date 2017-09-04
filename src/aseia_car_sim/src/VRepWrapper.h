@@ -42,11 +42,13 @@ namespace vrep {
     public:
       using Position = Eigen::Vector3f;
       using Orientation = Eigen::Quaternionf;
+      using Speed = float;
       const int handle = -1;
       static const Object world;
       Object(std::string name, int index) throw(Exception);
       Position position(const Object& reference = world) const throw(Exception);
       Orientation orientation(const Object& reference = world) const throw(Exception);
+      Speed speed() const throw(Exception);
       std::string name() const throw(Exception);
   };
 
