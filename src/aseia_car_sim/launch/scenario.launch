@@ -8,5 +8,7 @@
   <!--include file="$(find aseia_car_sim)/launch/manager.launch">
     <arg name="debug" value="$(arg debug)"/>
   </include-->
-  <node name="road" pkg="aseia_car_sim" type="road"/>
+  <node name="road" pkg="aseia_car_sim" type="road">
+  <param name="id" value="20"/>
+  </node>
 </launch>

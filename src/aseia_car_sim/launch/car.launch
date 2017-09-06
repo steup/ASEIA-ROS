@@ -86,6 +86,7 @@
       </group>
     </group>
     <node name="car$(arg index)" pkg="aseia_car_sim" type="car" launch-prefix="perf stat">
+      <param name="id"         value="$(eval index+1)"/>
       <param name="index"      value="$(arg index)"/>
       <param name="ctrls"      value="lane, acc, straight, maxSpeed, minSpeed"/>
       <param name="sens"       value="lane, frontDist, pose"/>

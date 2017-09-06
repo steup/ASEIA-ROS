@@ -15,6 +15,7 @@
 #include <FormatID.h>
 #include <EventID.h>
 #include <IO.h>
+#include <Prime.h>
 
 #include <boost/algorithm/string/split.hpp>
 
@@ -44,6 +45,7 @@ class RosChannel : public Channel {
     ros::Publisher mPub;
     list<ros::Subscriber> mSubs;
     int mNodeID=0;
+    MetaValue mPrimeID;
 
   public:
     void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType& eT) {
@@ -52,6 +54,8 @@ class RosChannel : public Channel {
         d >> e;
         if(((int)e[PublisherID()].value().get(0,0).value())%mNodeID!=0)
           handleEvent(e);
+        else
+          ROS_DEBUG_STREAM("Rejecting cyclic event: " << e);
     }
 
     RosChannel() = default;
@@ -59,6 +63,11 @@ class RosChannel : public Channel {
     RosChannel(TransPtr&& trans) : Channel(move(trans)) {
       ros::NodeHandle n;
       ros::NodeHandle("~").getParam("id", mNodeID);
+      mPrimeID = MetaValue(PrimeGenerator::prime(mNodeID), mTrans->out()[PublisherID()].value().typeId());
+      if(mNodeID)
+        ROS_DEBUG_STREAM("Establishing Channel with node id " << mNodeID << "and prime  " << mPrimeID);
+      else
+        ROS_ERROR_STREAM("Channel creation failed node id is 0");
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1, true);
       for(const EventType& in : mTrans->in()) {
         for(const EventType& subType : KnowledgeBase::findCompatible(in)) {
@@ -83,7 +92,7 @@ class RosChannel : public Channel {
     }
 
     virtual void publishEvent(MetaEvent& e) const {
-      e[PublisherID()].value()*=MetaValue(mNodeID, mTrans->out()[PublisherID()].value().typeId());
+      e[PublisherID()].value()*=mPrimeID;
       aseia_base::SensorEvent sE;
       Serializer<decltype(back_inserter(sE.event))> s(back_inserter(sE.event));
       s << e;

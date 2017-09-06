@@ -21,7 +21,8 @@ class SensorEventPublisher : public AbstractPubSub<SensorEvent>{
       : Base(Base::Type::publisher) {
         mPub = ros::NodeHandle().advertise< aseia_base::SensorEvent >(this->topic(), size, latch);
         ros::TimerEvent time;
-        ros::NodeHandle("~").getParam("id", mNodeID);
+        if(!ros::NodeHandle("~").getParam("id", mNodeID))
+          ROS_ERROR_STREAM("No \"id\" specified using 0: Events will not be used in Transformations!");
         this->publishType(time);
     }
 
