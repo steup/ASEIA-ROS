@@ -4,6 +4,7 @@ project(aseia_car_sim)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rosbag
   nav_msgs
   std_msgs
   tf
@@ -52,10 +53,12 @@ add_dependencies(bridge ${PROJECT_NAME}_generate_messages_cpp)
 add_executable(road src/Road.cpp)
 add_executable(car src/Car.cpp src/Data.cpp src/Controller.cpp
   src/VRepWrapper.cpp src/Errors.cpp)
+add_executable(extract src/extract.cpp)
 target_link_libraries(simulation ${catkin_LIBRARIES})
 target_link_libraries(car ${catkin_LIBRARIES})
 target_link_libraries(bridge ${catkin_LIBRARIES})
 target_link_libraries(road ${catkin_LIBRARIES})
 target_link_libraries(CarSimTransformations ${catkin_LIBRARIES})
+target_link_libraries(extract ${catkin_LIBRARIES} ASEIA)
 add_dependencies(simulation ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 add_dependencies(car ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
