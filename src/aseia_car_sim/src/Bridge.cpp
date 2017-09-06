@@ -160,7 +160,7 @@ class Odom : public Receiver<EventType, nav_msgs::Odometry, NoFilter> {
       msg.pose.pose.position.y = e[Position()].value()(1,0).value();
       msg.pose.pose.position.z = e[Position()].value()(2,0).value()+5.0;
       Eigen::Vector3f z, rot;
-      z << 0, 0, 1;
+      z << 1, 0, 0;
       rot << e[Orientation()].value()(0,0).value(),
              e[Orientation()].value()(1,0).value(),
              e[Orientation()].value()(2,0).value();
