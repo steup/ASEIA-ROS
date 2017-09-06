@@ -45,13 +45,20 @@ namespace aseia_car_sim {
 
           if(oID0 == oID1)// || (time0 - time1).value().norm() < 100)
             continue;
+          const MetaValue& ori = e[Orientation()].value();
+          MetaValue diff = (v[Position()]-e[Position()]).value();
+          if((ori*diff).sum() < 5) {
+            ROS_DEBUG_STREAM_NAMED(transName, "Filtered pair: " << oID0 << ", " << oID1);
+            continue;
+          }
+          ROS_DEBUG_STREAM_NAMED(transName, "ori: " << ori << endl << "diff: " << diff << endl << "dot: " << ori*diff);
           ROS_DEBUG_STREAM_NAMED(transName, "Producing Event for pair: " << oID0 << ", " << oID1);
           MetaEvent e0(out());
           e0=e;
           MetaAttribute offset(out()[Distance()]);
           offset/=offset.scale();
           offset.value()=offset.value().zero();
-          offset.value().block(0,0, MetaValue(4, out()[Distance()].value().typeId()));
+          offset.value().block(0,0, MetaValue(8, out()[Distance()].value().typeId()));
           offset*=MetaScale(out()[Distance()].scale());
           e0[Distance()]=(e0[Position()]-v[Position()]).norm()-offset;
           ROS_DEBUG_STREAM_NAMED(transName, "Insert Event in output queue: " << e0);

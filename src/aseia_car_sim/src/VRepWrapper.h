@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include <Eigen/Core>
-#include <Eigen/Geometry>
 
 namespace vrep {
 
@@ -41,7 +40,7 @@ namespace vrep {
       Object() {}
     public:
       using Position = Eigen::Vector3f;
-      using Orientation = Eigen::Quaternionf;
+      using Orientation = Eigen::Vector3f;
       using Speed = float;
       const int handle = -1;
       static const Object world;

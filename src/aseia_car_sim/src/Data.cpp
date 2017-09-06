@@ -99,8 +99,8 @@ namespace car {
     private:
       using PoseBaseConfig = EventConfig;
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
-      using Ori  = Attribute<id::attribute::Orientation, Value<float, 4>, Radian>;
-      using Speed    = Attribute<id::attribute::Speed , Value<float, 1, 1, true>>;
+      using Ori  = Attribute<id::attribute::Orientation, Value<float, 3>, Radian>;
+      using Speed    = Attribute<id::attribute::Speed , Value<float, 1, 1, true>, decltype(Meter()/Second())>;
       using PoseEvent = BaseEvent<PoseBaseConfig>::append<ObjectID>::type::append<Ori>::type::append<Speed>::type;
       PoseEvent mEvent;
       SensorEventPublisher<PoseEvent> mPub;
@@ -127,10 +127,10 @@ namespace car {
       virtual bool update() {
         //Implement pose query
         const Object::Position pos = mCarBody.position();
-        const Object::Orientation mod = Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitX()) *
+        /*const Object::Orientation mod = Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitX()) *
                                         Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitY()) *
-                                        Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());
-        const Object::Orientation ori = mCarBody.orientation() * mod;
+                                        Eigen::AngleAxisf(     0, Eigen::Vector3f::UnitZ());*/
+        const Object::Orientation ori = mCarBody.orientation();// * mod;
         const Object::Speed  speed = mCarBody.speed();
         ROS_DEBUG_STREAM(*this);
         TimeAttr& timeAttr   = mEvent.attribute(id::attribute::Time());
@@ -140,7 +140,7 @@ namespace car {
 
         timeAttr.value()(0,0) = { getTime(), 0 };
         posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
-        oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}, {{ori.w(), 0 }}};
+        oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}};
         speedAttr.value() = {{{speed, 0}}};
         timeAttr += timeError();
         posAttr  += posError();
@@ -159,13 +159,15 @@ namespace car {
     private:
       using DistBaseConfig = EventConfig;
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
+      using Ori  = Attribute<id::attribute::Orientation, Value<float, 3>, Radian>;
       using Distance = Attribute<id::attribute::Distance, Value<float, 1, 1, true>, Meter>;
-      using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type;
+      using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type::append<Ori>::type;
       DistEvent mEvent;
       SensorEventPublisher<DistEvent> mPub;
       using DistAttr  = DistEvent::findAttribute<::id::attribute::Distance>::type;
       using PosAttr   = DistEvent::findAttribute<::id::attribute::Position>::type;
       using TimeAttr  = DistEvent::findAttribute<::id::attribute::Time>::type;
+      using OriAttr   = DistEvent::findAttribute<::id::attribute::Orientation>::type;
       using ObjectComp = decltype(DistEvent::findAttribute<::id::attribute::Object>::type());
       using UTMACCUComp = decltype(DistEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
       NormalError<TimeAttr> timeError;
@@ -199,6 +201,7 @@ namespace car {
         virtual bool update() {
           TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
           DistAttr& distAttr = mEvent.attribute(id::attribute::Distance());
+          //OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
           timeAttr.value()(0,0) = { getTime(), 0 };
           timeAttr += timeError();
           VisionDepthSensor::Distances scan = mSensor.distances();

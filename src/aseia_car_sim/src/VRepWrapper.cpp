@@ -1,5 +1,6 @@
 #include "VRepWrapper.h"
 
+#include <Eigen/Geometry>
 #include <ros/ros.h>
 
 #include <vrep_common/simRosGetVisionSensorDepthBuffer.h>
@@ -162,7 +163,10 @@ static Object::Orientation getOrientation(int handle, int reference) {
   y = pose.response.pose.pose.orientation.y;
   z = pose.response.pose.pose.orientation.z;
   w = pose.response.pose.pose.orientation.w;
-  return Object::Orientation(w, x, y, z);
+  Eigen::Quaternionf q(w, x, y, z);
+  Object::Orientation result;
+  result << 0, 0, 1;
+  return q*result;
 }
 
 const Object Object::world;

@@ -217,7 +217,7 @@ static const char* transName = "utm_to_road";
         //todo handle possible orientation
         EventType reference;
         reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
-        reference.add(AttributeType(Orientation::value(), ValueType(type, 4, 1, true), providedPosAT->scale(), Radian()));
+        reference.add(AttributeType(Orientation::value(), ValueType(type, 3, 1, true), providedPosAT->scale(), Radian()));
         reference.add(provided[Time()]);
         reference.add(AttributeType(Nurbs::value(), ValueType(type, 100, 4, false), goalPosAT->scale(), providedPosAT->unit()));
 

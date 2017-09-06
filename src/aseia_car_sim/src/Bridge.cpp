@@ -16,7 +16,7 @@
 #include <Attribute.h>
 
 #include <aseia_car_sim/EventData.h>
-
+#include <Eigen/Geometry>
 
 namespace aseia_car_sim {
 
@@ -41,15 +41,15 @@ struct RoadBaseConfig : public EventConfig {
 };
 
 using ObjAttr = Attribute<Object, Value<uint32_t, 1, 1, false>>;
-using OriAttr = Attribute<Orientation, Value<float, 4>, Radian>;
+using OriAttr = Attribute<Orientation, Value<float, 3>, Radian>;
 using RoadDistAttr = Attribute<Distance, Value<float, 1>, Meter, Scale<std::ratio<1>, 1>>;
 using RoadSpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second()), Scale<std::ratio<1>, 1>>;
 using UTMDistAttr = Attribute<Distance, Value<float, 1>, Meter>;
 using UTMSpeedAttr = Attribute<Speed, Value<float, 1>, decltype(Meter()/Second())>;
-using UTMPoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
+using UTMPoseEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type::append<UTMSpeedAttr>::type;
 using RoadPoseEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<OriAttr>::type;
-using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<UTMDistAttr>::type;
-using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<RoadDistAttr>::type;
+using UTMACCEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<UTMDistAttr>::type::append<OriAttr>::type;
+using RoadACCEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<RoadDistAttr>::type::append<OriAttr>::type;
 using UTMSpeedEvent = BaseEvent<UTMBaseConfig>::append<ObjAttr>::type::append<UTMSpeedAttr>::type;
 using RoadSpeedEvent = BaseEvent<RoadBaseConfig>::append<ObjAttr>::type::append<RoadSpeedAttr>::type;
 
@@ -59,7 +59,7 @@ struct NurbsBaseConfig : public BaseConfig {
   using PositionScale = Scale<std::ratio<1>, 1>;
 };
 using Ref = Attribute<Reference, Value<double, 3>, Meter>;
-using Ori = Attribute<Orientation, Value<double, 4>, Radian>;
+using Ori = Attribute<Orientation, Value<double, 3>, Radian>;
 using NurbData = Attribute<Nurbs, Value<double, 100, 4, false>, Meter, Scale<std::ratio<1>, 1>>;
 using RoadEvent = BaseEvent<NurbsBaseConfig>
                         ::append<Ref>::type
@@ -159,10 +159,16 @@ class Odom : public Receiver<EventType, nav_msgs::Odometry, NoFilter> {
       msg.pose.pose.position.x = e[Position()].value()(0,0).value();
       msg.pose.pose.position.y = e[Position()].value()(1,0).value();
       msg.pose.pose.position.z = e[Position()].value()(2,0).value()+5.0;
-      msg.pose.pose.orientation.x = e[Orientation()].value()(0,0).value(),
-      msg.pose.pose.orientation.y = e[Orientation()].value()(1,0).value(),
-      msg.pose.pose.orientation.z = e[Orientation()].value()(2,0).value(),
-      msg.pose.pose.orientation.w = e[Orientation()].value()(3,0).value(),
+      Eigen::Vector3f z, rot;
+      z << 0, 0, 1;
+      rot << e[Orientation()].value()(0,0).value(),
+             e[Orientation()].value()(1,0).value(),
+             e[Orientation()].value()(2,0).value();
+      auto q = Eigen::Quaternionf::FromTwoVectors(z, rot);
+      msg.pose.pose.orientation.x = q.x();
+      msg.pose.pose.orientation.y = q.y();
+      msg.pose.pose.orientation.z = q.z();
+      msg.pose.pose.orientation.w = q.w();
       msg.header.frame_id = "map";
       msg.child_frame_id = "car"+to_string(e[Object()].value()(0));
       return true;
@@ -187,10 +193,17 @@ class RoadMarker {
       marker.pose.position.x = e.attribute(Reference()).value()(0,0).value();
       marker.pose.position.y = e.attribute(Reference()).value()(1,0).value();
       marker.pose.position.z = e.attribute(Reference()).value()(2,0).value();
-      marker.pose.orientation.x = e.attribute(Orientation()).value()(0,0).value();
-      marker.pose.orientation.y = e.attribute(Orientation()).value()(1,0).value();
-      marker.pose.orientation.z = e.attribute(Orientation()).value()(2,0).value();
-      marker.pose.orientation.w = e.attribute(Orientation()).value()(3,0).value();
+      Eigen::Vector3f z, rot;
+      z << 0, 0, 1;
+      rot << e[Orientation()].value()(0,0).value(),
+             e[Orientation()].value()(1,0).value(),
+             e[Orientation()].value()(2,0).value();
+      auto q = Eigen::Quaternionf::FromTwoVectors(z, rot);
+      marker.pose.orientation.x = q.x();
+      marker.pose.orientation.y = q.y();
+      marker.pose.orientation.z = q.z();
+      marker.pose.orientation.w = q.w();
+
       //marker.lifetime = ros::Duration(60);
       marker.color.a = 1.0;
       marker.color.b = 1.0;
