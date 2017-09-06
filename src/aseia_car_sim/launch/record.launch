@@ -8,5 +8,5 @@
                               /sensors/7590/2828564904
                               /sensors/8970/3327424136
                               /sensors/8970/998276099"/>
-  <node name="record" type="record" pkg="rosbag" args="$(arg topics) /rosout"/>
+  <node name="record" type="record" pkg="rosbag" args="$(arg topics) /sensors/management /rosout"/>
 </launch>
