@@ -114,8 +114,7 @@ namespace aseia_car_sim {
       }
   };
 
-EventID VirtACC::mGoal({Position::value(), Distance::value(), Time::value(),
-                                     Object::value(), PublisherID::value()});
+EventID VirtACC::mGoal({Position(), Distance(), Time(), Object::value(), Orientation(), PublisherID()});
 
 }
 
