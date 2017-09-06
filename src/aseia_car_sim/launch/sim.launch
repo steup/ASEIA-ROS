@@ -1,5 +1,6 @@
 <launch>
   <arg name="base_speed" default="8"/>
+  <arg name="disableBridge" default="false"/>
   <group ns="car0">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="0"/>
@@ -12,6 +13,8 @@
     <arg name="speed" value="$(eval base_speed)"/>
   </include>
   </group>
-  <node name="sim" pkg="aseia_car_sim" type="simulation" launch-prefix="perf stat "/>
-  <node name="bridge" pkg="aseia_car_sim" type="bridge"/>
+  <node name="sim" pkg="aseia_car_sim" type="simulation" launch-prefix="perf stat ">
+    <param name="id" value="1"/>
+  </node>
+  <node name="bridge" pkg="aseia_car_sim" type="bridge" unless="$(arg disableBridge)"/>
 </launch>

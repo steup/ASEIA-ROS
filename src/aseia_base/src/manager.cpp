@@ -28,6 +28,8 @@ using namespace std;
 using boost::split;
 using boost::token_compress_on;
 using boost::is_any_of;
+using namespace id::attribute;
+
 
 static string topic(EventID eID, FormatID fID) {
   ostringstream os;
@@ -41,19 +43,22 @@ class RosChannel : public Channel {
   protected:
     ros::Publisher mPub;
     list<ros::Subscriber> mSubs;
+    int mNodeID=0;
 
   public:
     void unpackEvent(aseia_base::SensorEvent::ConstPtr msgPtr, const EventType& eT) {
         MetaEvent  e(eT);
         DeSerializer<decltype(msgPtr->event.begin())> d(msgPtr->event.begin(), msgPtr->event.end());
         d >> e;
-        handleEvent(e);
+        if(((int)e[PublisherID()].value().get(0,0).value())%mNodeID!=0)
+          handleEvent(e);
     }
 
     RosChannel() = default;
 
     RosChannel(TransPtr&& trans) : Channel(move(trans)) {
       ros::NodeHandle n;
+      ros::NodeHandle("~").getParam("id", mNodeID);
       mPub =  n.advertise<aseia_base::SensorEvent>(topic(mTrans->out()), 1, true);
       for(const EventType& in : mTrans->in()) {
         for(const EventType& subType : KnowledgeBase::findCompatible(in)) {
@@ -77,7 +82,8 @@ class RosChannel : public Channel {
       ROS_ERROR_STREAM_NAMED("ros_channel", *this << " expecting event of type:\n" << mTrans->out() << "Error: " << errorStr << " on generated Event\n" << e << "\nof type\n" << (EventType)e);
     }
 
-    virtual void publishEvent(const MetaEvent& e) const {
+    virtual void publishEvent(MetaEvent& e) const {
+      e[PublisherID()].value()*=MetaValue(mNodeID, mTrans->out()[PublisherID()].value().typeId());
       aseia_base::SensorEvent sE;
       Serializer<decltype(back_inserter(sE.event))> s(back_inserter(sE.event));
       s << e;

@@ -3,6 +3,7 @@
 	<arg name="transformations" default=""/>
   <node name="AseiaManager" pkg="aseia_base" type="manager" launch-prefix="perf record -F 250 -s --call-graph dwarf --timestamp-filename -- " unless="$(arg debug)">
     <param name="transformations" value="$(arg transformations)"/>
+    <param name="id" value="10"/>
   </node>
   <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(arg debug)" launch-prefix="gdbserver localhost:1234 ">
     <param name="transformations" value="$(arg transformations)"/>
