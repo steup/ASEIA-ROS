@@ -87,7 +87,7 @@ class VirtACCKalmanTransformer : public Transformer {
     }
 
     virtual void print(ostream& o) const {
-      o << "Unimplemeneted Kalman Transformer";
+      o << "Virtual ACC Sensor Kalman Transformer with filter " << mFilter;
     }
 };
 
