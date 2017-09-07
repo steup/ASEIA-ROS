@@ -29,7 +29,6 @@ class VirtACCKalmanTransformer : public Transformer {
   public:
     const type::ID type;
     MetaAttribute x, P, time, Q, z_alpha;
-    MetaFilter filter;
     VirtACCKalmanTransformer(const EventType& goal, const EventTypes& in, const MetaFilter& filter)
       : Transformer(goal, in),
         type(goal[Distance()].value().typeId()),
@@ -37,10 +36,9 @@ class VirtACCKalmanTransformer : public Transformer {
         P(goal[Distance()]),
         time(goal[Time()]),
         Q(goal[Distance()]),
-        z_alpha(goal[Distance()]),
-        filter(adaptFilter(filter)) {
-
-      //{{{2.575829303549}}}, type) {
+        z_alpha(goal[Distance()])
+      {
+        mFilter = adaptFilter(filter);
         x.value()=MetaValue(type, 1, 1, false).zero();
         P.value()=MetaValue(type, 1, 1, false).ones();
         P.unit()*=P.unit();
@@ -53,12 +51,12 @@ class VirtACCKalmanTransformer : public Transformer {
 
     virtual bool check(const MetaEvent& e) const {
       // todo check for compatibility of speed to state or of future of sensing to state
-      return filter({&e});// ||
+      return mFilter({&e});// ||
 //             ( e.attribute(Speed()) && e[Object()].value() == object);
     }
 
     virtual Events operator()(const MetaEvent& e) {
-      if( !filter({&e}) )
+      if( !mFilter({&e}) )
           return {};
       MetaAttribute z = e[Distance()].valueOnly();
       MetaAttribute R = e[Distance()].uncertainty()/z_alpha; // sensor input sigma
