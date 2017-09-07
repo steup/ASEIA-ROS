@@ -80,29 +80,27 @@ namespace aseia_car_sim {
     private:
       static EventID mGoal;
     public:
-      VirtACC() : Transformation(Transformation::Type::heterogeneus, 2, mGoal) {
+      VirtACC() : Transformation(Transformation::Type::heterogeneus, 1, mGoal) {
         ROS_DEBUG_STREAM_NAMED(transName, "VirtACC Transformation with goal id: " << mGoal);
       }
 
       virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
         ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
-        if(goal == mGoal) {
-          ROS_INFO_STREAM("VirtACC fits");
-          return {goal/=Distance::value(), goal/=Distance::value()};
-        }else
+        if(goal.isCompatible(mGoal))
+          return {goal/Distance()*Orientation()};
+        else
           return {};
       };
 
       virtual vector<EventType> in(const EventType& goal, const EventType& provided, const MetaFilter& = MetaFilter())  const {
         ROS_DEBUG_STREAM_NAMED(transName, "Testing VirtACC against goal: " << goal);
-        if(EventID(goal) != mGoal)
-          return {};
-
         EventType in = goal;
-        in.remove(Distance::value());
+        in.remove(Distance());
+        AttributeType ori(Orientation(), in[Position()].value(), Scale<>(), Radian());
+        in.add(ori);
 
         ROS_DEBUG_STREAM_NAMED(transName, "VirtACC fits with in type: " << in);
-        return {in, in};
+        return {in};
       }
 
       virtual TransPtr create(const EventType& out, const EventTypes& in, const AbstractPolicy& policy, const MetaFilter& = MetaFilter()) const {
