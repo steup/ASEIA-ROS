@@ -161,13 +161,12 @@ namespace car {
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using Ori  = Attribute<id::attribute::Orientation, Value<float, 3>, Radian>;
       using Distance = Attribute<id::attribute::Distance, Value<float, 1, 1, true>, Meter>;
-      using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type::append<Ori>::type;
+      using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type;
       DistEvent mEvent;
       SensorEventPublisher<DistEvent> mPub;
       using DistAttr  = DistEvent::findAttribute<::id::attribute::Distance>::type;
       using PosAttr   = DistEvent::findAttribute<::id::attribute::Position>::type;
       using TimeAttr  = DistEvent::findAttribute<::id::attribute::Time>::type;
-      using OriAttr   = DistEvent::findAttribute<::id::attribute::Orientation>::type;
       using ObjectComp = decltype(DistEvent::findAttribute<::id::attribute::Object>::type());
       using UTMACCUComp = decltype(DistEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
       NormalError<TimeAttr> timeError;
@@ -201,7 +200,6 @@ namespace car {
         virtual bool update() {
           TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
           DistAttr& distAttr = mEvent.attribute(id::attribute::Distance());
-          //OriAttr&  oriAttr  = mEvent.attribute(id::attribute::Orientation());
           timeAttr.value()(0,0) = { getTime(), 0 };
           timeAttr += timeError();
           VisionDepthSensor::Distances scan = mSensor.distances();
