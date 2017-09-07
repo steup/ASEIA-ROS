@@ -52,7 +52,7 @@ class RosChannel : public Channel {
         MetaEvent  e(eT);
         DeSerializer<decltype(msgPtr->event.begin())> d(msgPtr->event.begin(), msgPtr->event.end());
         d >> e;
-        if(((int)e[PublisherID()].value().get(0,0).value())%mNodeID!=0)
+        if(((int)e[PublisherID()].value().get(0,0).value())%PrimeGenerator::prime(mNodeID)!=0)
           handleEvent(e);
         else
           ROS_DEBUG_STREAM("Rejecting cyclic event: " << e);
