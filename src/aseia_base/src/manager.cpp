@@ -72,7 +72,7 @@ class RosChannel : public Channel {
       for(const EventType& in : mTrans->in()) {
         for(const EventType& subType : KnowledgeBase::findCompatible(in)) {
           ROS_DEBUG_STREAM("Subscribing to topic: " << topic(subType));
-          mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(subType), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, subType)));
+          mSubs.push_back(n.subscribe<aseia_base::SensorEvent>(topic(subType), 1, boost::bind(&RosChannel::unpackEvent,  this,  _1, subType), ros::VoidConstPtr(), ros::TransportHints().udp()));
         }
       }
     }

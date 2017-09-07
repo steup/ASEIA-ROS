@@ -34,7 +34,7 @@ public:
   SensorEventSubscriber(void (*callback)(const SensorEvent&), size_t size=1)
     : Base(Base::Type::subscriber), mCallback(callback)
   {
-    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this);
+    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this, ros::TransportHints().udp());
     ros::TimerEvent time;
     this->publishType(time);
   }
