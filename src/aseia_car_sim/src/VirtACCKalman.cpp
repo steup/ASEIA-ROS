@@ -28,7 +28,7 @@ class VirtACCKalmanTransformer : public Transformer {
     }
   public:
     const type::ID type;
-    MetaAttribute x, P, time, Q, z_alpha;
+    MetaAttribute x, P, time, Q, z_alpha, limit;
     VirtACCKalmanTransformer(const EventType& goal, const EventTypes& in, const MetaFilter& filter)
       : Transformer(goal, in),
         type(goal[Distance()].value().typeId()),
@@ -36,7 +36,8 @@ class VirtACCKalmanTransformer : public Transformer {
         P(goal[Distance()]),
         time(goal[Time()]),
         Q(goal[Distance()]),
-        z_alpha(goal[Distance()])
+        z_alpha(goal[Distance()]),
+        limit(goal[Distance()])
       {
         mFilter = adaptFilter(filter);
         x.value()=MetaValue(type, 1, 1, false).zero();
@@ -47,6 +48,7 @@ class VirtACCKalmanTransformer : public Transformer {
         Q.unit() = Meter()*Meter()/Second();
         z_alpha.value() = MetaValue({{{2.575829303549}}}, type);
         z_alpha.unit() = Dimensionless();
+        limit.value() = MetaValue(100, type);
       }
 
     virtual bool check(const MetaEvent& e) const {
@@ -74,7 +76,7 @@ class VirtACCKalmanTransformer : public Transformer {
       result+=x;
       out[Distance()] = result; //set new output
       ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "Result: " << result << endl << "x_temp:" << x_temp << endl << "P_temp" << P_temp << endl << "x: " << x_temp << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x-result));
-      if(x_temp.valid() && P_temp.valid()) {
+      if(x_temp.valid() && P_temp.valid() && x_temp < limit) {
         time = e[Time()].valueOnly();
         x = move(x_temp);
         P = move(P_temp);
