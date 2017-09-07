@@ -46,13 +46,13 @@ namespace car {
 
   class LaneSensor : public Float {
     private:
-      struct LaneBaseConfig : public EventConfig {
+      /*struct LaneBaseConfig : public EventConfig {
         using PositionScale = Scale<std::ratio<1>, 1>;
       };
       using Object = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
       using LaneEvent = BaseEvent<LaneBaseConfig>::append<Object>::type;
       LaneEvent mEvent;
-      SensorEventPublisher<LaneEvent> mPub;
+      SensorEventPublisher<LaneEvent> mPub;*/
       VisionDepthSensor mSensor;
       float mPos;
       float roadTreshold = 0.9;
@@ -64,8 +64,8 @@ namespace car {
           mAlpha(getFloatParam(path+"/alpha"))
       {
         ROS_INFO_STREAM("Add lane sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
-        mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
-        mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();
+        /*mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
+        mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();*/
         update();
       }
 
@@ -84,9 +84,9 @@ namespace car {
         value = (1-mAlpha)*mValue + mAlpha*(( (float)( start + stop ) / mSensor.resolution[0] ) - 1);
         mValue= value;
         ROS_DEBUG_STREAM(*this);
-        mEvent.attribute(id::attribute::Time()).value()(0,0) = { getTime(), 0 };
+        /*mEvent.attribute(id::attribute::Time()).value()(0,0) = { getTime(), 0 };
         mEvent.attribute(id::attribute::Position()).value()(1,0) = { value, 0 };
-        mPub.publish(mEvent);
+        mPub.publish(mEvent);*/
         return true;
       }
 
