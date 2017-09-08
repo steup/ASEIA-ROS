@@ -17,4 +17,7 @@
     <param name="id" value="1"/>
   </node>
   <node name="bridge" pkg="aseia_car_sim" type="bridge" unless="$(arg disableBridge)"/>
+  <node name="road" pkg="aseia_car_sim" type="road">
+    <param name="id" value="20"/>
+  </node>
 </launch>
