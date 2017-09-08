@@ -29,21 +29,26 @@ class NurbsPublisher {
                             ::append<NurbData>::type
                             ::append<Ori>::type;
     SensorEventPublisher<NurbsReference> mPub;
+    ros::Timer mTimer;
+    NurbsReference mRef;
 
   public:
-    NurbsPublisher() : mPub(1, true) {
-      NurbsReference ref;
-      ref.attribute(Time()).value()={{{(uint32_t)ros::Time::now().toSec(), 0}}};
-      ref.attribute(Position()).value()={{{0, 0}},
+    void tick(const ros::TimerEvent& e) {
+      mPub.publish(mRef);
+    }
+
+    NurbsPublisher() : mPub(1, true), mTimer(ros::NodeHandle().createTimer(ros::Duration(10), &NurbsPublisher::tick, this)) {
+      mRef.attribute(Time()).value()={{{(uint32_t)ros::Time::now().toSec(), 0}}};
+      mRef.attribute(Position()).value()={{{0, 0}},
                                           {{0, 0}},
                                           {{0, 0}}
                                           };
-      ref.attribute(Reference()).value()={{{0.0f, 0}},
+      mRef.attribute(Reference()).value()={{{0.0f, 0}},
                                            {{0.0f, 0}},
                                            {{-95.0f, 0}}
                                           };
-      ref.attribute(Orientation()).value()={{{0, 0}},{{0, 0}}, {{1, 0}}};
-      ref.attribute(Nurbs()).value()={{{   3       }, {  27       }, { 31       }, {5.0     }},
+      mRef.attribute(Orientation()).value()={{{0, 0}},{{0, 0}}, {{1, 0}}};
+      mRef.attribute(Nurbs()).value()={{{   3       }, {  27       }, { 31       }, {5.0     }},
                                        {{-175.381989}, {- 85.089470}, {128.044647}, {0.000000}},
                                        {{-185.792740}, {- 28.090939}, {131.982025}, {0.033333}},
                                        {{-148.693283}, {-  8.011072}, {141.422775}, {0.066667}},
@@ -144,7 +149,7 @@ class NurbsPublisher {
                                        {{   0.000000}, {   0.000000}, {  0.000000}, {0.0     }},
                                        {{   0.000000}, {   0.000000}, {  0.000000}, {0.0     }},
                                       };
-      mPub.publish(ref);
+      mPub.publish(mRef);
     }
 };
 }

@@ -31,6 +31,7 @@ static const char* transName = "utm_to_road";
       bool mCurveReady=false;
       static size_t mSampleSize;
       ::id::type::ID mPosType, mSampleType;
+      MetaEvent mRoadEvent;
 
       void nurbsCoord(MetaValue& posIn, MetaValue& oriIn) {
         ostringstream os;
@@ -95,10 +96,11 @@ static const char* transName = "utm_to_road";
       }
 
       virtual Events operator()(const MetaEvent& event) {
+        ROS_DEBUG_STREAM_NAMED(transName, "Got Input event for UTMToRoad: " << event);
         const MetaAttribute* attr = event.attribute(Position::value());
         if(!attr)
           return {};
-        if(attr->scale().reference() == mOutRef) {
+        if(event!=mRoadEvent && attr->scale().reference() == mOutRef) {
           mCurveReady = true;
           const MetaAttribute* mPosPtr = event.attribute(Reference::value());
           const MetaAttribute* mOriPtr = event.attribute(Orientation::value());
@@ -133,8 +135,10 @@ static const char* transName = "utm_to_road";
           os << "\tLenght: " << mRoadLength(0, mRoadLength.cols()-1) << "\tSegments: " << mRoadLength;
           ROS_INFO_STREAM_NAMED(transName, os.str());
           ROS_DEBUG_STREAM_NAMED(transName, debug.str());
-          if(mSamples.cols() && mRoadLength.cols())
+          if(mSamples.cols() && mRoadLength.cols()) {
             mCurveReady = true;
+            mRoadEvent = event;
+          }
           return {};
         }
         if(attr->scale().reference() == mInRef && mCurveReady) {
@@ -195,7 +199,7 @@ static const char* transName = "utm_to_road";
       }
 
       virtual EventIDs in(EventID goal, const MetaFilter& = MetaFilter()) const {
-        EventID ref({Position::value(), Time::value(), Orientation::value(), Reference::value(), Nurbs::value()});
+        EventID ref({Position::value(), Time::value(), PublisherID(), Orientation::value(), Reference::value(), Nurbs::value()});
         ROS_INFO_STREAM("Querying UTMToRoadTransformation for appropriate Input EventIDs: [" << goal << ", " << ref << "]");
         return EventIDs({goal, ref});
       };
@@ -216,6 +220,8 @@ static const char* transName = "utm_to_road";
         orig.attribute(Time::value())->scale().reference(providedPosAT->scale().reference());
         //todo handle possible orientation
         EventType reference;
+        reference.add(goal[Position()]);
+        reference.add(goal[PublisherID()]);
         reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
         reference.add(AttributeType(Orientation::value(), ValueType(type, 3, 1, true), providedPosAT->scale(), Radian()));
         reference.add(provided[Time()]);
