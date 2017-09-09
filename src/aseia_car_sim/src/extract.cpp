@@ -57,11 +57,19 @@ int main(int argc, char** argv) {
         for(size_t r=0;r<vT.rows();r++)
           for(size_t c=0;c<vT.cols();c++) {
             file << attrName << "_" << r << "_" << c << " in " << aT.unit();
-            file << (c<vT.cols()&&r<vT.rows()?", ":"");
+            if(vT.hasUncertainty())
+              file << ", " << attrName << " uncertainty";
+
+            if(c+1 != vT.cols() || r+1 == vT.rows())
+              file << ", ";
           }
-      } else
+      } else {
         file << attrName << " in " << aT.unit();
-      file << (++i<elem.second.length()?", ":"");
+        if(vT.hasUncertainty())
+          file << ", " << attrName << " uncertainty";
+      }
+      if(i + 1 != elem.second.length())
+        file << ", ";
     }
     file << endl;
     rosbag::View subView(bag, rosbag::TopicQuery(elem.first));
@@ -84,11 +92,13 @@ int main(int argc, char** argv) {
             file << v.get(r, c).value();
             if(vT.hasUncertainty())
               file << ", " << v.get(r, c).uncertainty();
-            file << ((c+1)<v.cols()&&(r+1)<v.rows()?", ":"");
+            if(c+1 != v.cols() || r+1 != v.rows())
+              file << ", ";
           }
-        file << (++i<elem.second.length()?", ":"");
+        if(i++ + 1 != elem.second.length())
+          file << ", ";
       }
-      file << ";" << endl;
+      file << endl;
     }
     file.close();
   }
