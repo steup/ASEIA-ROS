@@ -56,19 +56,22 @@ int main(int argc, char** argv) {
       if(vT.rows()>1 || vT.cols()>1) {
         for(size_t r=0;r<vT.rows();r++)
           for(size_t c=0;c<vT.cols();c++) {
-            file << attrName << "_" << r << "_" << c << " in " << aT.unit();
+            file << attrName << "_" << r << "_" << c;
+            if(aT.unit() != Dimensionless())
+              file << " in " << aT.unit();
             if(vT.hasUncertainty())
-              file << ", " << attrName << " uncertainty";
-
-            if(c+1 != vT.cols() || r+1 == vT.rows())
+              file << ", " << attrName << "_" << r << "_" << c << " uncertainty";
+            if(c+1 != vT.cols() || r+1 != vT.rows())
               file << ", ";
           }
       } else {
-        file << attrName << " in " << aT.unit();
+        file << attrName;
+        if(aT.unit() != Dimensionless())
+          file << " in " << aT.unit();
         if(vT.hasUncertainty())
           file << ", " << attrName << " uncertainty";
       }
-      if(i + 1 != elem.second.length())
+      if(i++ + 1 != elem.second.length())
         file << ", ";
     }
     file << endl;
