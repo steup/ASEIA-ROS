@@ -182,7 +182,8 @@ namespace car {
     public:
       void handleEvent(const DistEvent& e) {
         recvDist = e[id::attribute::Distance()].value()(0,0).value();
-        recvTimeout = 10;
+        if(recvDist<200 && recvDist > 10)
+          recvTimeout = 10;
       }
       VisionDistanceSensor(const std::string& path, const Car& car)
         : Float(path, car, true),
