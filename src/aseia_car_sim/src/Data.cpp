@@ -138,7 +138,7 @@ namespace car {
         OriAttr&  oriAttr    = mEvent.attribute(id::attribute::Orientation());
         SpeedAttr& speedAttr = mEvent.attribute(id::attribute::Speed());
 
-        timeAttr.value()(0,0) = { getTime(), 0 };
+        timeAttr.value()(0,0) = { getTime(), getDT() };
         posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}};
         speedAttr.value() = {{{speed, 0}}};
@@ -177,13 +177,17 @@ namespace car {
       ObjectComp  o;
       using FilterExpr = decltype(filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o);
       SensorEventSubscriber<DistEvent, FilterExpr> mSub;
-      float recvDist;
-      size_t recvTimeout=0;
+      float recvDist=100;
+      uint32_t recvTime= 0;
+      const uint32_t maxTimeDist = 500;
     public:
       void handleEvent(const DistEvent& e) {
-        recvDist = e[id::attribute::Distance()].value()(0,0).value();
-        if(recvDist<200 && recvDist > 10)
-          recvTimeout = 10;
+        recvDist = e[id::attribute::Distance()].value()(0,0).value()-e[id::attribute::Distance()].value()(0,0).uncertainty();
+        if(recvDist>200){
+          recvTime=0;
+          recvDist=100;
+        }
+        recvTime = e[id::attribute::Time()].value()(0,0).value() - e[id::attribute::Time()].value()(0,0).uncertainty();
       }
       VisionDistanceSensor(const std::string& path, const Car& car)
         : Float(path, car, true),
@@ -199,9 +203,10 @@ namespace car {
           update();
       }
         virtual bool update() {
+          uint32_t now = getTime();
           TimeAttr& timeAttr = mEvent.attribute(id::attribute::Time());
           DistAttr& distAttr = mEvent.attribute(id::attribute::Distance());
-          timeAttr.value()(0,0) = { getTime(), 0 };
+          timeAttr.value()(0,0) = { now, getDT() };
           timeAttr += timeError();
           VisionDepthSensor::Distances scan = mSensor.distances();
           value = numeric_limits<float>::infinity();
@@ -217,11 +222,16 @@ namespace car {
           distAttr += distError();
           ROS_DEBUG_STREAM(*this);
           mPub.publish(mEvent);
-          if(recvTimeout>0) {
-            value=recvDist;
-            recvTimeout--;
-          }
-          return value != numeric_limits<float>::infinity();
+          float alpha = now-recvTime;
+          if(alpha>maxTimeDist)
+            alpha=maxTimeDist;
+          if(alpha<0)
+            alpha=0;
+          alpha/=maxTimeDist;
+          ROS_DEBUG_STREAM_NAMED("vision_dist", "Value: " << value << " RecvDist: " << recvDist << " alpha: " << alpha << " recvTime: " << recvTime << " now: " << now);
+          value*=alpha;
+          value+=(1-alpha)*recvDist;
+          return value < 200;
         }
 
         virtual void print(ostream& o) const {

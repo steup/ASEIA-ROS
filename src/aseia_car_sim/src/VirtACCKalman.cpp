@@ -48,7 +48,7 @@ class VirtACCKalmanTransformer : public Transformer {
         Q.unit() = Meter()*Meter()/Second();
         z_alpha.value() = MetaValue({{{2.575829303549}}}, type);
         z_alpha.unit() = Dimensionless();
-        limit.value() = MetaValue(100, type);
+        limit.value() = MetaValue({{{100, 0}}},  type);
       }
 
     virtual bool check(const MetaEvent& e) const {
@@ -58,12 +58,12 @@ class VirtACCKalmanTransformer : public Transformer {
     }
 
     virtual Events operator()(const MetaEvent& e) {
-      if( !mFilter({&e}) )
+      if(e[Time()] < time || !mFilter({&e}) )
           return {};
       MetaAttribute z = e[Distance()].valueOnly();
       MetaAttribute R = e[Distance()].uncertainty()/z_alpha; // sensor input sigma
       R*=R; //sensor input covariance
-      MetaAttribute Q_time = (e[Time()].valueOnly()-time)*Q;
+      MetaAttribute Q_time = (e[Time()].valueOnly()-time).norm()*Q;
 
       MetaAttribute P_pre = P+Q_time; // prediction covariance
       MetaAttribute K = P_pre*(P_pre+R).inverse(); // kalman gain
@@ -73,16 +73,19 @@ class VirtACCKalmanTransformer : public Transformer {
       MetaEvent out=e;
       // convert covariance to uncertainty
       MetaAttribute result = P_temp.toUncertainty().sqrt()*z_alpha;
-      result+=x;
+      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "x_temp:" << x_temp << endl << "Result: " << result << endl << "P_temp" << P_temp << endl << "x: " << x_temp << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x-result));
+      result+=x_temp;
       out[Distance()] = result; //set new output
-      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "Result: " << result << endl << "x_temp:" << x_temp << endl << "P_temp" << P_temp << endl << "x: " << x_temp << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x-result));
       if(x_temp.valid() && P_temp.valid() && x_temp < limit) {
         time = e[Time()].valueOnly();
         x = move(x_temp);
         P = move(P_temp);
+        return {out};
       }
+      else
+        P=move(P_pre);
 
-      return {out};
+      return {};
 
     }
 

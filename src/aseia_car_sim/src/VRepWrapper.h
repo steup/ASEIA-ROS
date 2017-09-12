@@ -89,4 +89,5 @@ namespace vrep {
   };
   
   uint32_t getTime();
+  uint32_t getDT();
 }

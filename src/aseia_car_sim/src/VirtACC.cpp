@@ -5,8 +5,9 @@
 #include <MetaEvent.h>
 #include <IO.h>
 
-
 #include <map>
+#include <vector>
+#include <functional>
 
 namespace aseia_car_sim {
 
@@ -17,57 +18,98 @@ namespace aseia_car_sim {
 
   class VirtACCTransformer : public Transformer {
     private:
-      using Storage = vector<MetaEvent>;
+      struct comp {
+        bool operator()(const MetaAttribute& a, const MetaAttribute& b) const {
+          return (bool)(a<b);
+        }
+      };
+      struct timeComp {
+        bool operator()(const MetaEvent& a, const MetaEvent& b) const {
+          return (bool)(a[Time()]>b[Time()]);
+        }
+      };
+
+      using Storage = map<MetaAttribute, vector<MetaEvent>, comp>;
       Storage mStorage;
+      MetaAttribute posRef;
+      MetaAttribute timeRef;
+      MetaAttribute distRef;
     public:
       VirtACCTransformer(const EventType& out, const EventTypes& in)
-        : Transformer(out, in) {
+        : Transformer(out, in), posRef(in[0][Position()]), timeRef(in[0][Time()]), distRef(out[Distance()]) {
+          posRef.value().set(0,0, {10});
+          timeRef.value().set(0,0, {1});
+          distRef.value().set(0,0, {200});
       }
 
       virtual bool check(const MetaEvent& event) const {
-        return true;
+        MetaAttribute pos = event[Position()]/event[Position()].scale();
+        MetaAttribute time= event[Time()]/event[Time()].scale();
+        return pos.uncertainty() < posRef && time.uncertainty() < timeRef;
       }
 
       virtual Events operator()(const MetaEvent& e) {
-
+        ostringstream os;
         const MetaAttribute& oID0 = *e.attribute(Object::value());
-
-        auto it = find_if(mStorage.begin(), mStorage.end(), [oID0](const MetaEvent& e){ return *e.attribute(Object::value())==oID0; });
-        if(it == mStorage.end())
-          mStorage.push_back(e);
+        auto oIDIt = mStorage.find(oID0);
+        if(oIDIt == mStorage.end())
+          oIDIt = mStorage.insert(make_pair(oID0, vector<MetaEvent>())).first;
+        if(oIDIt->second.size() <10)
+          oIDIt->second.push_back(e);
         else
-          *it = e;
-
+          oIDIt->second.back() = e;
+        sort(oIDIt->second.begin(), oIDIt->second.end(), timeComp());
         Events events;
+        for(const MetaEvent& e: mStorage[oID0]) {
+          bool found = false;
+          for(const auto& p : mStorage) {
+            if(p.first == oID0) {
+              os << "Ignoring events of same ObjectID: " << oID0 << " == " << p.first << endl;
+              continue;
+            }
+            for(const MetaEvent& v: p.second) {
+              if(v[Time()] > e[Time()]) {
+                os << v << endl << " is newer then " << e << ": discarding!" << endl;
+                continue;
+              }
+              if(v[Time()] < e[Time()]) {
+                os << v << endl << " is older then " << e << ": aborting search!" << endl;
+                break;
+              }
 
-        for(const MetaEvent& v: mStorage) {
-          const MetaAttribute& oID1 = *v.attribute(Object::value());
+              const MetaAttribute& oID1 = p.first;
+              const MetaValue& ori = e[Orientation()].value();
+              MetaValue diff = (v[Position()]-e[Position()]).value();
+              if((ori*diff).sum() < 5) {
+                os << "Filtered pair: " << oID0 << ", " << v[Object()] << endl;
+                found=true;
+                break;
+              }
+              os << "ori: " << ori << endl << "diff: " << diff << endl << "dot: " << ori*diff << endl;
 
-          if(oID0 == oID1)// || (time0 - time1).value().norm() < 100)
-            continue;
-          const MetaValue& ori = e[Orientation()].value();
-          MetaValue diff = (v[Position()]-e[Position()]).value();
-          if((ori*diff).sum() < 5) {
-            ROS_DEBUG_STREAM_NAMED(transName, "Filtered pair: " << oID0 << ", " << oID1);
-            continue;
+              os << "Producing Event for pair: " << oID0 << ", " << oID1 << endl;
+              MetaEvent e0(out());
+              e0=e;
+              MetaAttribute offset(out()[Distance()]);
+              offset/=offset.scale();
+              offset.value()=MetaValue({{{4, 0}}}, out()[Distance()].value().typeId());
+              offset*=MetaScale(out()[Distance()].scale());
+              e0[Distance()]=(e0[Position()]-v[Position()]).norm()-offset;
+              os << "Offset: " << offset << endl;
+              os << "Insert Event in output queue: " << e0 << endl;
+              if(e0[Distance()]/e0[Distance()].scale() < distRef) {
+                events.push_back(e0);
+                found=true;
+                break;
+              } else
+                os << e0 << endl << " contains a distance larger then maximum of 200 m discarding!" << endl;
+            }
           }
-          ROS_DEBUG_STREAM_NAMED(transName, "ori: " << ori << endl << "diff: " << diff << endl << "dot: " << ori*diff);
-          ROS_DEBUG_STREAM_NAMED(transName, "Producing Event for pair: " << oID0 << ", " << oID1);
-          MetaEvent e0(out());
-          e0=e;
-          MetaAttribute offset(out()[Distance()]);
-          offset/=offset.scale();
-          offset.value()=offset.value().zero();
-          offset.value().block(0,0, MetaValue(8, out()[Distance()].value().typeId()));
-          offset*=MetaScale(out()[Distance()].scale());
-          e0[Distance()]=(e0[Position()]-v[Position()]).norm()-offset;
-          ROS_DEBUG_STREAM_NAMED(transName, "Insert Event in output queue: " << e0);
-          if(e0[Distance()].value().value()<200)
-            events.push_back(e0);
+          if(found)
+            break;
         }
-        ROS_DEBUG_STREAM_NAMED(transName, "Outputting resulting events");
-        for(const MetaEvent& res : events)
-          ROS_DEBUG_STREAM_NAMED(transName, "Resulting Events:" << res);
+        os << events.size() << " Events generated" << endl;
+        ROS_DEBUG_STREAM_NAMED(transName, os.str());
         return events;
       }
 

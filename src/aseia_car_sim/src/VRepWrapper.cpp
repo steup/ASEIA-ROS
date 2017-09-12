@@ -74,6 +74,17 @@ uint32_t getTime() {
   return (uint32_t)(handle.response.simulationTime*1000);
 }
 
+uint32_t getDT() {
+  static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetInfo>("/vrep/simRosGetInfo", true);
+  simRosGetInfo handle;
+  try {
+    checkedCall(srv, handle);
+  } catch(Exception& e) {
+      throw ExtendedException(e) << " Cannot get V-Rep simulation info: " << __FILE__ << ":" << __LINE__;
+  }
+  return (uint32_t)(handle.response.timeStep*1000);
+}
+
 int getHandle(const string& objectName, int index = -1) {
   static ros::ServiceClient srv = ros::NodeHandle().serviceClient< simRosGetObjectHandle >( "/vrep/simRosGetObjectHandle", true);
   simRosGetObjectHandle handle;
