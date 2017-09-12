@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
     fs::path topicDir = fs::path(fileName).stem()/to_string(EventID(elem.second));
     if(!fs::exists(topicDir))
-      fs::create_directory(topicDir);
+      fs::create_directories(topicDir);
     fs::ofstream file((topicDir/to_string(FormatID(elem.second))).replace_extension(".csv"), ios_base::out);
     if(!file.is_open())
       ROS_ERROR_STREAM("Cannot open output file for writing");
