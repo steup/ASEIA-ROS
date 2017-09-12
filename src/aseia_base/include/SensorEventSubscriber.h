@@ -43,7 +43,7 @@ public:
   SensorEventSubscriber(void (T::*callback)(const SensorEvent&), T* objPtr, size_t size=1)
     : Base(Base::Type::subscriber), mCallback(std::bind(callback, objPtr, std::placeholders::_1))
   {
-    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this);
+    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this, ros::TransportHints().udp());
     ros::TimerEvent time;
     this->publishType(time);
   }
@@ -72,7 +72,7 @@ public:
     : Base(Base::Type::subscriber), mCallback(callback),
       mFilter(filter)
   {
-    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this);
+    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this, ros::TransportHints().udp());
     auto filterImpl = filter(::filter::s0);
     auto& filterBuf = this->mTypeMsg.filter;
     filterBuf.resize(filterImpl.size());
@@ -87,7 +87,7 @@ public:
     : Base(Base::Type::subscriber), mCallback(std::bind(callback, objPtr, std::placeholders::_1)),
       mFilter(filter)
   {
-    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this);
+    mSub = ros::NodeHandle().subscribe(this->topic(), size, &SensorEventSubscriber::unpack, this, ros::TransportHints().udp());
     auto filterImpl = filter(::filter::s0);
     auto& filterBuf = this->mTypeMsg.filter;
     filterBuf.resize(filterImpl.size());
