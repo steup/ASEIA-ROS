@@ -1,11 +1,15 @@
 <launch>
-	<arg name="debug" default="false"/>
-	<arg name="transformations" default=""/>
-  <node name="AseiaManager" pkg="aseia_base" type="manager" launch-prefix="perf record -F 250 -s --call-graph dwarf --timestamp-filename -- " unless="$(arg debug)">
+	<arg name="transformations"/>
+  <arg name="network_profile"/>
+  <node name="AseiaManager" pkg="aseia_base" type="manager" 
+        launch-prefix="perf record -F 250 -s --call-graph dwarf --timestamp-filename -- " 
+        if="$(eval network_profile == '')" >
     <param name="transformations" value="$(arg transformations)"/>
     <param name="id" value="10"/>
   </node>
-  <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(arg debug)" launch-prefix="gdbserver localhost:1234 ">
+  <node name="AseiaManager" pkg="aseia_base" type="manager" if="$(eval network_profile != '')" launch-prefix="cgexec -g net_cls:ros/$(arg network_profile)">
     <param name="transformations" value="$(arg transformations)"/>
+    <param name="id" value="10"/>
   </node>
+
 </launch>

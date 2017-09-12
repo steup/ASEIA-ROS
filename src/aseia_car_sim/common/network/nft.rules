@@ -1,9 +1,9 @@
 table inet ros {
 	chain classify {
 		type filter hook output priority 0; policy accept;
-		cgroup 0x10001 counter
-		cgroup 0x10002 mark set 2 counter
-		cgroup 0x10003 mark set 3 counter
-		cgroup 0x10004 mark set 4 counter
+		ip protocol udp cgroup 0x10001 mark set 1 counter
+		ip protocol udp cgroup 0x10002 mark set 2 counter
+		ip protocol udp cgroup 0x10003 mark set 3 counter
+		ip protocol udp cgroup 0x10004 mark set 4 counter
 	}
 }

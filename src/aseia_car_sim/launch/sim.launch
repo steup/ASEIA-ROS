@@ -1,23 +1,26 @@
 <launch>
   <arg name="base_speed" default="8"/>
   <arg name="disableBridge" default="false"/>
+  <arg name="network_profile" default="perfect"/>
   <group ns="car0">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="0"/>
     <arg name="speed" value="$(eval base_speed+4)"/>
+    <arg name="network_profile" value="$(arg network_profile)"/>
   </include>
   </group>
   <group ns="car1">
   <include file="$(find aseia_car_sim)/launch/car.launch">
     <arg name="index" value="1"/>
     <arg name="speed" value="$(eval base_speed)"/>
+    <arg name="network_profile" value="$(arg network_profile)"/>
   </include>
   </group>
   <node name="sim" pkg="aseia_car_sim" type="simulation">
     <param name="id" value="1"/>
   </node>
   <node name="bridge" pkg="aseia_car_sim" type="bridge" unless="$(arg disableBridge)"/>
-  <node name="road" pkg="aseia_car_sim" type="road">
+  <node name="road" pkg="aseia_car_sim" type="road" launch-prefix="cgexec -g net_cls:ros/$(arg network_profile)">
     <param name="id" value="20"/>
   </node>
 </launch>

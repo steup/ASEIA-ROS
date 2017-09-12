@@ -1,11 +1,11 @@
 <launch>
-  <arg name="debug" default="false"/>
+  <arg name="network_profile" default=""/>
   <param name="/AseiaManager/nurbSampleSize" value="1000"/>
   <include file="$(find aseia_base)/launch/manager.launch">
     <arg name="transformations" value="aseia_car_sim::UTMToRoad
                                        aseia_car_sim::VirtACC
                                        aseia_car_sim::VirtSpeed
                                        aseia_car_sim::VirtACCKalman"/>
-    <arg name="debug" value="$(arg debug)"/>
+    <arg name="network_profile" default="$(arg network_profile)"/>
   </include>
 </launch>
