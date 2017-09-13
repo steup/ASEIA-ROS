@@ -8,6 +8,6 @@
                               /sensors/7590/239495608
                               /sensors/8970/4123374456
                               /sensors/98670/2047249185
-                              /sensors/98670/2048592666"/>
-  <node name="record" type="record" pkg="rosbag" args="$(arg topics) /sensors/management /vrep/info /rosout"/>
+                              /sensors/98670/2048592666" />
+  <node name="record" type="record" pkg="rosbag" args="$(arg topics) /sensors/management /rosout"/>
 </launch>

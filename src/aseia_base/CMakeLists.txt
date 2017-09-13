@@ -53,7 +53,6 @@ set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -flto=4 -fuse-linker-plugin
    FILES
    EventType.msg
    SensorEvent.msg
-   ReceiveIndication.msg
 )
 
 ## Generate services in the 'srv' folder
