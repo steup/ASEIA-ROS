@@ -1,5 +1,6 @@
 #include <SensorEventPublisher.h>
 #include <SensorEventSubscriber.h>
+#include <aseia_car_sim/Latency.h>
 #include <BaseEvent.h>
 #include <ID.h>
 #include <Attribute.h>
@@ -180,9 +181,18 @@ namespace car {
       float recvDist=100;
       uint32_t recvTime= 0;
       const uint32_t maxTimeDist = 500;
+      ros::Publisher mLatencyPub;
     public:
       void handleEvent(const DistEvent& e) {
         recvDist = e[id::attribute::Distance()].value()(0,0).value()-e[id::attribute::Distance()].value()(0,0).uncertainty();
+        aseia_car_sim::Latency lat;
+        lat.send = e[id::attribute::Time()].value()(0,0).value();
+        lat.recv = getTime();
+        lat.object = e[id::attribute::Object()].value()(0,0).value();
+        lat.publisher = e[id::attribute::PublisherID()].value()(0,0).value();
+        lat.topic = mSub.topic();
+        lat.car = mCar.index();
+        mLatencyPub.publish(lat);
         if(recvDist>200){
           recvTime=0;
           recvDist=100;
@@ -198,6 +208,7 @@ namespace car {
                      filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o)
       {
           ROS_INFO_STREAM("Add vision depth sensor " << getName(path+"/handle") << " with handle " << mSensor.handle);
+          mLatencyPub = ros::NodeHandle().advertise<aseia_car_sim::Latency>("/latency", 1);
           mEvent.attribute(id::attribute::PublisherID()).value()(0,0) = mPub.nodeId();
           mEvent.attribute(id::attribute::Object()).value()(0,0) = car.index();
           update();

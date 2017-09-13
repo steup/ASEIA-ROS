@@ -2,8 +2,11 @@
 #include <EventType.h>
 #include <MetaEvent.h>
 #include <DeSerializer.h>
+#include <ID.h>
 #include <aseia_base/EventType.h>
 #include <aseia_base/SensorEvent.h>
+#include <aseia_car_sim/Latency.h>
+#include <vrep_common/VrepInfo.h>
 
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
@@ -13,6 +16,7 @@
 #include <boost/filesystem/fstream.hpp>
 
 using namespace std;
+using namespace ::id::attribute;
 namespace fs = boost::filesystem;
 
 int main(int argc, char** argv) {
@@ -23,6 +27,25 @@ int main(int argc, char** argv) {
   rosbag::Bag bag;
   string fileName=argv[1];
   bag.open(fileName, rosbag::bagmode::Read);
+  rosbag::View vrepInfo(bag, rosbag::TopicQuery("/vrep/info"));
+  {
+    fs::path topicDir = fs::path(fileName).stem();
+    if(!fs::exists(topicDir))
+      fs::create_directories(topicDir);
+    fs::ofstream file((topicDir/"vrep").replace_extension(".csv"), ios_base::out);
+    if(!file.is_open())
+      ROS_ERROR_STREAM("Cannot open output file for writing ");
+    file << "#rostime sec in s, rostime nsec in ns, simtime in ms" << endl;
+    float lastTime = -1;
+    for(const rosbag::MessageInstance& m: vrepInfo) {
+      const vrep_common::VrepInfo::ConstPtr& mPtr = m.instantiate<vrep_common::VrepInfo>();
+      if(mPtr->simulationTime.data > lastTime) {
+        file << mPtr->headerInfo.stamp.sec << ", " << mPtr->headerInfo.stamp.nsec << ", " << (uint32_t)(1000*mPtr->simulationTime.data) << endl;
+        lastTime = mPtr->simulationTime.data;
+      }
+    }
+    file.close();
+  }
   rosbag::View view(bag, rosbag::TopicQuery("/sensors/management"));
   map<string, EventType> types;
   for(const rosbag::MessageInstance& m: view) {
@@ -105,5 +128,22 @@ int main(int argc, char** argv) {
     }
     file.close();
   }
+  rosbag::View recvInfo(bag, rosbag::TopicQuery("/latency"));
+  {
+    fs::path topicDir = fs::path(fileName).stem();
+    if(!fs::exists(topicDir))
+      fs::create_directories(topicDir);
+    fs::ofstream file((topicDir/"latency").replace_extension(".csv"), ios_base::out);
+    if(!file.is_open())
+      ROS_ERROR_STREAM("Cannot open output file for writing ");
+    file << "#topic, send time in ms, recv time in ms, object, publisher, car index" << endl;
+    for(const rosbag::MessageInstance& m: recvInfo) {
+      const aseia_car_sim::Latency::ConstPtr& mPtr = m.instantiate<aseia_car_sim::Latency>();
+      if(!mPtr)continue;
+      file << mPtr->topic << ", " << mPtr->send << ", " << mPtr->recv << ", " << mPtr->object << ", " << mPtr->publisher << ", " << mPtr->car;
+    }
+    file.close();
+  }
+
   return 0;
 }

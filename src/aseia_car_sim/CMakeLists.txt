@@ -21,6 +21,7 @@ set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} -flto=4 -fuse-linker-plugin
 add_message_files(
   FILES
   EventData.msg
+  Latency.msg
 )
 
 add_service_files(
