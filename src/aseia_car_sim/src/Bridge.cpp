@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
   using ObjectComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Object>::type());
   using UTMACCUComp = decltype(aseia_car_sim::UTMACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
   RoadACCUComp c = {0.5};
-  UTMACCUComp c2 = {0.5};
+  UTMACCUComp c2 = {0.9};
   ObjectComp o = {0};
   auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o;
   auto utmACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c2 && filter::e0[id::attribute::Object()] == o;
@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
   aseia_car_sim::Translator<aseia_car_sim::RoadACCEvent  , id::attribute::Distance, decltype(roadACCFilter)> roadACCSub  ("roadACC", roadACCFilter);
   aseia_car_sim::Translator<aseia_car_sim::UTMPoseEvent  , id::attribute::Position> utmPoseSub  ("utmPose");
   //aseia_car_sim::Translator<aseia_car_sim::UTMSpeedEvent , id::attribute::Speed   > utmSpeedSub ("utmSpeed");
-  aseia_car_sim::Translator<aseia_car_sim::UTMACCEvent   , id::attribute::Distance, decltype(utmACCFilter)> utmACCSub   ("utmACC", utmACCFilter);
+  //aseia_car_sim::Translator<aseia_car_sim::UTMACCEvent   , id::attribute::Distance, decltype(utmACCFilter)> utmACCSub   ("utmACC", utmACCFilter);
   aseia_car_sim::Odom<aseia_car_sim::UTMPoseEvent> odomSub;
   aseia_car_sim::RoadMarker roadSub;
   ros::spin();

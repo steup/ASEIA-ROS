@@ -140,7 +140,7 @@ namespace car {
         SpeedAttr& speedAttr = mEvent.attribute(id::attribute::Speed());
 
         timeAttr.value()(0,0) = { getTime(), getDT() };
-        posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
+        posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 1 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}};
         speedAttr.value() = {{{speed, 0}}};
         timeAttr += timeError();
@@ -158,10 +158,16 @@ namespace car {
 
   class VisionDistanceSensor: public Float {
     private:
-      using DistBaseConfig = EventConfig;
+      struct DistBaseConfig : public BaseConfig {
+          using TimeValueType = Value<uint32_t, 1>;
+          using TimeScale = Scale<std::ratio<1,1000>, 1>;
+          using PositionValueType = Value<float, 3>;
+          using PositionScale = Scale<std::ratio<1>, 1>;
+      };
+      //using DistBaseConfig = EventConfig;
       using ObjectID = Attribute<id::attribute::Object, Value<uint32_t, 1, 1, false>>;
-      using Ori  = Attribute<id::attribute::Orientation, Value<float, 3>, Radian>;
-      using Distance = Attribute<id::attribute::Distance, Value<float, 1, 1, true>, Meter>;
+      using Ori  = Attribute<id::attribute::Orientation, Value<float, 3>, Radian, Scale<std::ratio<1>, 1>>;
+      using Distance = Attribute<id::attribute::Distance, Value<float, 1, 1, true>, Meter, Scale<std::ratio<1>, 1>>;
       using DistEvent = BaseEvent<DistBaseConfig>::append<ObjectID>::type::append<Distance>::type;
       DistEvent mEvent;
       SensorEventPublisher<DistEvent> mPub;
@@ -174,7 +180,7 @@ namespace car {
       NormalError<DistAttr> distError;
       VisionDepthSensor mSensor;
       const float mMaxDist;
-      UTMACCUComp c = {0.5};
+      UTMACCUComp c = {0.9};
       ObjectComp  o;
       using FilterExpr = decltype(filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o);
       SensorEventSubscriber<DistEvent, FilterExpr> mSub;

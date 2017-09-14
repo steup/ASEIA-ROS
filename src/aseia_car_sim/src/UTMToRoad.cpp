@@ -77,6 +77,7 @@ static const char* transName = "utm_to_road";
         os << "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos << endl;
         ROS_DEBUG_STREAM_NAMED(transName, os.str());
         posIn+=posIn.ones()*roadPosError;
+        oriIn = MetaValue({{{0, 0}}, {{0, 0}}, {{1, 0}}}, ((ValueType)(oriIn)).typeId());
 
       }
 
@@ -223,7 +224,6 @@ static const char* transName = "utm_to_road";
         reference.add(goal[Position()]);
         reference.add(goal[PublisherID()]);
         reference.add(AttributeType(Reference::value(), providedPosAT->value(), providedPosAT->scale(), providedPosAT->unit()));
-        reference.add(AttributeType(Orientation::value(), ValueType(type, 3, 1, true), providedPosAT->scale(), Radian()));
         reference.add(provided[Time()]);
         reference.add(AttributeType(Nurbs::value(), ValueType(type, 100, 4, false), goalPosAT->scale(), providedPosAT->unit()));
 
