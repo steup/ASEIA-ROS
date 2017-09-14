@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     for(const rosbag::MessageInstance& m: recvInfo) {
       const aseia_car_sim::Latency::ConstPtr& mPtr = m.instantiate<aseia_car_sim::Latency>();
       if(!mPtr)continue;
-      file << mPtr->topic << ", " << mPtr->send << ", " << mPtr->recv << ", " << mPtr->object << ", " << mPtr->publisher << ", " << mPtr->car;
+      file << mPtr->topic << ", " << mPtr->send << ", " << mPtr->recv << ", " << mPtr->object << ", " << mPtr->publisher << ", " << mPtr->car << endl;
     }
     file.close();
   }
