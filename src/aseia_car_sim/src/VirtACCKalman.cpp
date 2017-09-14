@@ -72,8 +72,8 @@ class VirtACCKalmanTransformer : public Transformer {
       //if time < current
       MetaEvent out=e;
       // convert covariance to uncertainty
-      MetaAttribute result = P_temp.toUncertainty().sqrt()*z_alpha;
-      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "x_temp:" << x_temp << endl << "Result: " << result << endl << "P_temp" << P_temp << endl << "x: " << x_temp << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x-result));
+      MetaAttribute result = P_temp.sqrt().toUncertainty()*z_alpha;
+      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "x_temp:" << x_temp << endl << "Result: " << result << endl << "P_temp" << P_temp << endl << "x: " << x << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x_temp-z));
       result+=x_temp;
       out[Distance()] = result; //set new output
       if(x_temp.valid() && P_temp.valid() && x_temp < limit) {
