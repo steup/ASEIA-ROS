@@ -76,7 +76,7 @@ static const char* transName = "utm_to_road";
         os << "road Pose: " << posIn << " forwarded error: " << roadPosError << endl;
         os << "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos << endl;
         ROS_DEBUG_STREAM_NAMED(transName, os.str());
-
+        oriIn = MetaValue({{{0, 0}}, {{0, 0}}, {{1, 0}}}, ((ValueType)(oriIn)).typeId());
       }
 
 
