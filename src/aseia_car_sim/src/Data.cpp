@@ -190,6 +190,8 @@ namespace car {
       ros::Publisher mLatencyPub;
     public:
       void handleEvent(const DistEvent& e) {
+        if(e[id::attribute::PublisherID()].value().value() > 10)
+          return;
         recvDist = e[id::attribute::Distance()].value()(0,0).value()-e[id::attribute::Distance()].value()(0,0).uncertainty();
         aseia_car_sim::Latency lat;
         lat.send = e[id::attribute::Time()].value()(0,0).value();
