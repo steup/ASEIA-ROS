@@ -140,7 +140,7 @@ namespace car {
         SpeedAttr& speedAttr = mEvent.attribute(id::attribute::Speed());
 
         timeAttr.value()(0,0) = { getTime(), getDT() };
-        posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 2 }}};
+        posAttr.value() = {{{pos[0], 0.2}}, {{pos[1], 0.2}}, {{ pos[2], 1 }}};
         oriAttr.value() = {{{ori.x(), 0}}, {{ori.y(), 0}}, {{ori.z(), 0 }}};
         speedAttr.value() = {{{speed, 0}}};
         timeAttr += timeError();
@@ -174,7 +174,7 @@ namespace car {
       NormalError<DistAttr> distError;
       VisionDepthSensor mSensor;
       const float mMaxDist;
-      UTMACCUComp c = {0.5};
+      UTMACCUComp c = {0.9};
       ObjectComp  o;
       using FilterExpr = decltype(filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o);
       SensorEventSubscriber<DistEvent, FilterExpr> mSub;
@@ -184,6 +184,8 @@ namespace car {
       ros::Publisher mLatencyPub;
     public:
       void handleEvent(const DistEvent& e) {
+        if(e[id::attribute::PublisherID()].value().value() > 10)
+          return;
         recvDist = e[id::attribute::Distance()].value()(0,0).value()-e[id::attribute::Distance()].value()(0,0).uncertainty();
         aseia_car_sim::Latency lat;
         lat.send = e[id::attribute::Time()].value()(0,0).value();

@@ -247,8 +247,8 @@ int main(int argc, char** argv) {
   using RoadACCUComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
   using ObjectComp = decltype(aseia_car_sim::RoadACCEvent::findAttribute<::id::attribute::Object>::type());
   using UTMACCUComp = decltype(aseia_car_sim::UTMACCEvent::findAttribute<::id::attribute::Distance>::type().uncertainty());
-  RoadACCUComp c = {0.5};
-  UTMACCUComp c2 = {0.5};
+  RoadACCUComp c = {0.9};
+  UTMACCUComp c2 = {0.9};
   ObjectComp o = {0};
   auto roadACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c && filter::e0[id::attribute::Object()] == o;
   auto utmACCFilter = filter::uncertainty(filter::e0[::id::attribute::Distance()]) < c2 && filter::e0[id::attribute::Object()] == o;

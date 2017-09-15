@@ -41,7 +41,7 @@ static const char* transName = "utm_to_road";
         MetaValue diff = (posIn.cast(mSampleType)*MetaValue(helperType).ones()-mSamples);
         diff=diff.cwiseDot(diff);
         int minI=(size_t)diff.transpose().argmin().get(0,0).value();
-        MetaValue roadPosError = diff.block(0, minI, 1, 1).zeroValue();
+        MetaValue roadPosError = diff(0, minI).zeroValue().sqrt();
         os << "Fitting Road sample (" << minI << "): " << mSamples.block(0, minI, 3, 1) << " difference is " << diff(0, minI) << ")" << endl;
         int pre  = minI?minI-1:mSamples.cols()-1;
         int post = (minI+1)%mSamples.cols();
@@ -65,10 +65,10 @@ static const char* transName = "utm_to_road";
         os << "I: " << I << endl;
         MetaValue offset = (I-B).block(0,0,2,0).norm()*offsetFactor;
         MetaValue laneOffset = (I-posIn).norm();
-        laneOffset += MetaValue({{{0, offset.get(0,0)}}}, laneOffset.typeId());
+        laneOffset += roadPosError + offset.zeroValue();
         MetaValue roadPos({{{1.0f, 1.0f/(mSamples.cols())}}}, posIn.typeId());
         roadPos*=mRoadLength(0, minI);
-        roadPos+=offset;
+        roadPos+=offset+roadPosError;
         posIn.set(0,0,0);
         posIn.block(1,0, move(laneOffset));
         posIn.block(2,0, move(roadPos));
@@ -76,7 +76,6 @@ static const char* transName = "utm_to_road";
         os << "road Pose: " << posIn << " forwarded error: " << roadPosError << endl;
         os << "road Pose Type: " << (ValueType)posIn << " road offset Type: " << (ValueType)roadPos << endl;
         ROS_DEBUG_STREAM_NAMED(transName, os.str());
-        posIn+=posIn.ones()*roadPosError;
 
       }
 
@@ -125,9 +124,10 @@ static const char* transName = "utm_to_road";
           for(size_t i=0;i<mSampleSize-2*dim*mSampleSize/lSize;i++)
             mSamples.block(0,i,c.sample(MetaValue((float)(i+dim*mSampleSize/lSize)/mSampleSize, mSampleType)).transpose());
           debug << "mSamples: " << mSamples << endl;
-          MetaValue shifted = mSamples.block(0, 1, 3, mSamples.cols()-2);
+          MetaValue shifted = mSamples.block(0, 1, 3, mSamples.cols()-1);
           debug << "shifted: " << shifted << endl;
-          mRoadLength = shifted-mSamples.block(0, 0, 3, mSamples.cols()-2);
+          mRoadLength = mSamples.zero();
+          mRoadLength.block(0, 1, shifted-mSamples.block(0, 0, 3, mSamples.cols()-1));
           debug << "mRoadLenght: " << mRoadLength << endl;
           mRoadLength=mRoadLength.cwiseDot(mRoadLength).sqrt();
           for(size_t i=1;i<mRoadLength.cols();i++)

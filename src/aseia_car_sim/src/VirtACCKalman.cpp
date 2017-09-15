@@ -28,14 +28,14 @@ class VirtACCKalmanTransformer : public Transformer {
     }
   public:
     const type::ID type;
-    MetaAttribute x, P, time, Q, z_alpha, limit;
+    MetaAttribute x, P, time, q, z_alpha, limit;
     VirtACCKalmanTransformer(const EventType& goal, const EventTypes& in, const MetaFilter& filter)
       : Transformer(goal, in),
         type(goal[Distance()].value().typeId()),
         x(goal[Distance()]),
         P(goal[Distance()]),
         time(goal[Time()]),
-        Q(goal[Distance()]),
+        q(goal[Distance()]),
         z_alpha(goal[Distance()]),
         limit(goal[Distance()])
       {
@@ -44,10 +44,11 @@ class VirtACCKalmanTransformer : public Transformer {
         P.value()=MetaValue(type, 1, 1, false).ones();
         P.unit()*=P.unit();
         time.value()=MetaValue(goal[Time()].value().typeId(), 1, 1, false).zero();
-        Q.value() = MetaValue({{{0.1}}}, type);
-        Q.unit() = Meter()*Meter()/Second();
+        q.value() = MetaValue({{{400}}}, type);
+        q.unit() = Meter()*Meter()/(Second()*Second()*Second()*Second());
         z_alpha.value() = MetaValue({{{2.575829303549}}}, type);
         z_alpha.unit() = Dimensionless();
+        q/=z_alpha*z_alpha;
         limit.value() = MetaValue({{{100, 0}}},  type);
       }
 
@@ -63,7 +64,11 @@ class VirtACCKalmanTransformer : public Transformer {
       MetaAttribute z = e[Distance()].valueOnly();
       MetaAttribute R = e[Distance()].uncertainty()/z_alpha; // sensor input sigma
       R*=R; //sensor input covariance
-      MetaAttribute Q_time = (e[Time()].valueOnly()-time).norm()*Q;
+      MetaAttribute dT = (e[Time()].valueOnly()-time).norm();
+      dT.value()=move(dT.value().cast(type));
+      dT/=dT.scale();
+      MetaAttribute Q_time = q;
+      Q_time*=dT*dT*dT*dT;
 
       MetaAttribute P_pre = P+Q_time; // prediction covariance
       MetaAttribute K = P_pre*(P_pre+R).inverse(); // kalman gain
@@ -72,19 +77,31 @@ class VirtACCKalmanTransformer : public Transformer {
       //if time < current
       MetaEvent out=e;
       // convert covariance to uncertainty
-      MetaAttribute result = P_temp.sqrt().toUncertainty()*z_alpha;
-      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "x_temp:" << x_temp << endl << "Result: " << result << endl << "P_temp" << P_temp << endl << "x: " << x << endl << "P: " << P_temp << endl << "R: " << R << endl << "Q: " << Q_time << endl << "K: " << K << endl << "z: " << z << endl<< "out: " << out << endl << "diff: " << (x_temp-z));
-      result+=x_temp;
+      MetaAttribute result = P_temp.sqrt().toUncertainty()*z_alpha+x_temp;
+      ROS_DEBUG_STREAM_NAMED("virt_acc_kalman", "Result: " << result << endl <<
+                                                "x_temp:" << x_temp << endl <<
+                                                "P_temp" << P_temp << endl <<
+                                                "P_pre" << P_pre << endl <<
+                                                "x: " << x << endl <<
+                                                "P: " << P << endl <<
+                                                "R: " << R << endl <<
+                                                "dT" << dT << endl <<
+                                                "Q: " << Q_time << endl <<
+                                                "K: " << K << endl <<
+                                                "z: " << z << endl<<
+                                                "out: " << out << endl <<
+                                                "diff: " << (x_temp-z));
       out[Distance()] = result; //set new output
-      if(x_temp.valid() && P_temp.valid() && x_temp < limit) {
+      if(x_temp.valid() && P_temp.valid() && result < limit) {
         time = e[Time()].valueOnly();
         x = move(x_temp);
         P = move(P_temp);
         return {out};
       }
-      else
-        P=move(P_pre);
-
+      if(!x.valid() || !P.valid()) {
+        x.value()=MetaValue(type, 1, 1, false).zero();
+        P.value()=MetaValue(type, 1, 1, false).ones();
+      }
       return {};
 
     }
