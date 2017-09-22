@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aseia_car_sim)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DROSCONSOLE_MIN_SEVERITY=5")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -63,3 +64,4 @@ target_link_libraries(CarSimTransformations ${catkin_LIBRARIES})
 target_link_libraries(extract ${catkin_LIBRARIES} ASEIA)
 add_dependencies(simulation ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 add_dependencies(car ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+add_dependencies(extract ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
