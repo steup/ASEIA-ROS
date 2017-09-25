@@ -1,8 +1,10 @@
 <launch>
 	<arg name="transformations"/>
   <arg name="network_profile"/>
+  <!--node name="AseiaManager" pkg="aseia_base" type="manager" 
+        launch-prefix="perf record -e {probe_libCarSimTransformations:kalman,probe_libCarSimTransformations:acc,probe_libCarSimTransformations:utm,cycles} -F 249 -s -call-graph dwarf -timestamp-filename - " 
+        if="$(eval network_profile == '')" -->
   <node name="AseiaManager" pkg="aseia_base" type="manager" 
-        launch-prefix="perf record -F 250 -s --call-graph dwarf --timestamp-filename -- " 
         if="$(eval network_profile == '')" >
     <param name="transformations" value="$(arg transformations)"/>
     <param name="id" value="10"/>
